@@ -42,4 +42,6 @@ public class User
     //Сообщения
     public ICollection<ProjectMessage> ProjectMessages { get; set; } = new List<ProjectMessage>();
     public ICollection<WorkItemMessage> WorkItemMessages { get; set; } = new List<WorkItemMessage>();
+
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

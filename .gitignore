@@ -41,8 +41,7 @@ project.fragment.lock.json
 artifacts/
 
 # ASP.NET Core
-appsettings.Development.json  # ← ВАЖНО: не коммить файлы с паролями!
-appsettings.json 
+appsettings.Development.json
 *.user
 
 # PostgreSQL
@@ -57,3 +56,5 @@ appsettings.json
 
 # VS Code
 .vscode/
+
+Commands
