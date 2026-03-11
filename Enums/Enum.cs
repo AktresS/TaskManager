@@ -11,6 +11,7 @@ public enum TaskPriority
 public enum MemberRole
 {
     Owner,
+    Admin,
     Member
 }
 

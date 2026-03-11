@@ -18,11 +18,16 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
             CreatedById = currentUser.UserId,
             CreatedDate = DateTime.UtcNow
         };
-     
-        Console.WriteLine($"CurrentUserId: {currentUser.UserId}");
-        Console.WriteLine($"Project CreatedById: {project.CreatedById}");
 
         context.Projects.Add(project);
+
+        context.ProjectMembers.Add(new ProjectMember
+        {
+            Project = project,
+            UserId = currentUser.UserId,
+            Role = Enums.MemberRole.Owner
+        });
+
         await context.SaveChangesAsync();
 
         return new ProjectResponse

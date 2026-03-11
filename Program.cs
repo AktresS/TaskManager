@@ -7,6 +7,7 @@ using TaskManager.Data;
 using TaskManager.Security;
 using TaskManager.Services.Auth;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.ProjectMembers;
 using TaskManager.Services.Projects;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
