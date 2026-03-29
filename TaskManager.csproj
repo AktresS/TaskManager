@@ -22,9 +22,12 @@
   <ItemGroup>
     <Folder Include="Controllers\" />
     <Folder Include="Data\" />
+    <Folder Include="Dtos\ProjectMessage\" />
     <Folder Include="Enums\" />
     <Folder Include="Security\" />
+    <Folder Include="Services\ProjectAuthorization\" />
     <Folder Include="Services\ProjectMembers\" />
+    <Folder Include="Services\ProjectMessages\" />
     <Folder Include="Services\Projects\" />
   </ItemGroup>
 

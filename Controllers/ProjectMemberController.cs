@@ -25,12 +25,20 @@ namespace TaskManager.Controllers
             return Ok();
         }
 
+        [HttpPut("{userId}")]
+        public async Task<ActionResult<ProjectMemberRoleResponse>> UpdateMemberRole(int projectId, int userId, UpdateProjectRoleRequest request)
+        {
+            var response = await service.UpdateProjectMemberRole(projectId, userId, request);
+            return Ok(response);
+        }    
+
+
         [HttpDelete("{userId}")]
         public async Task<IActionResult> RemoveMember(int projectId, int userId)
         {
             await service.RemoveMemberAsync(projectId, userId);
 
-            return Ok();
+            return NoContent();
         }
     }
 }

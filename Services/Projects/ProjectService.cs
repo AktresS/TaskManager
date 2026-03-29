@@ -3,14 +3,14 @@ using TaskManager.Data;
 using TaskManager.Dtos.Project;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.Projects;
 
-public class ProjectService(AppDbContext context, ICurrentUserService currentUser) : IProjectService
+public class ProjectService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth) : IProjectService
 {
     public async Task<ProjectResponse> CreateAsync(CreateProjectRequest request)
     {
-        
         var project = new Project
         {
             Name = request.Name,
@@ -46,6 +46,8 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
 
         if (project is null)
             throw new Exception("Project not found");
+
+        await auth.EnsureOwner(id);
 
         project.Name = request.Name;
         project.Description = request.Description;
@@ -93,7 +95,9 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
         var project = await context.Projects.FindAsync(id);
 
         if (project is null)
-            throw new Exception("Project nit found");
+            throw new Exception("Project not found");
+
+        await auth.EnsureOwner(id);
         
         context.Projects.Remove(project);
 

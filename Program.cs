@@ -7,7 +7,9 @@ using TaskManager.Data;
 using TaskManager.Security;
 using TaskManager.Services.Auth;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.ProjectAuthorization;
 using TaskManager.Services.ProjectMembers;
+using TaskManager.Services.ProjectMessages;
 using TaskManager.Services.Projects;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,13 +19,17 @@ builder.Services.AddDbContext<AppDbContext>(options => options
 
 builder.Services.AddControllers();
 
+builder.Services.AddHttpContextAccessor(); 
+
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
+builder.Services.AddScoped<IProjectMessageService, ProjectMessageService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
