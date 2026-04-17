@@ -1,0 +1,12 @@
+# Команды для работы с миграциями
+
+# Создать миграцию
+dotnet ef migrations add ИмяМиграции -s TaskManager.Web -p TaskManager.Data --output-dir Data/Migrations
+
+# Применить миграции
+dotnet ef database update -s TaskManager.Web -p TaskManager.Data
+
+# Откатить последнюю миграцию
+dotnet ef migrations remove -s TaskManager.Web -p TaskManager.Data
+
+"deadLine": "2026-04-10T12:00:00Z"

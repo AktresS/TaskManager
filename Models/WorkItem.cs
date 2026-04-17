@@ -31,7 +31,7 @@ public class WorkItem
     public DateTime UpdateDate { get; set; } = DateTime.UtcNow;
 
     [Required]
-    public DateTime DeadLine { get; set; } 
+    public DateTime DeadLine { get; set; }
 
     [ForeignKey("CreatedById")]
     public User CreatedBy { get; set; } = null!;

@@ -11,9 +11,17 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
 {
     public async Task<ProjectResponse> CreateAsync(CreateProjectRequest request)
     {
+        var name = request.Name?.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Project name cannot be empty");
+
+        if (name.Length > 256)
+            throw new ArgumentException("Project name is too long");
+            
         var project = new Project
         {
-            Name = request.Name,
+            Name = name,
             Description = request.Description,
             CreatedById = currentUser.UserId,
             CreatedDate = DateTime.UtcNow
@@ -48,9 +56,12 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
             throw new Exception("Project not found");
 
         await auth.EnsureOwner(id);
+        
+        if (request.Name != null)
+            project.Name = request.Name;
 
-        project.Name = request.Name;
-        project.Description = request.Description;
+        if (request.Description != null)
+            project.Description = request.Description;
 
         await context.SaveChangesAsync();
 
@@ -66,18 +77,23 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
 
     public async Task<List<ProjectResponse>> GetUserProjectsAsync()
     {
-        return await context.Projects.Select(x => new ProjectResponse
-        {
-            ProjectId = x.ProjectId,
-            Name = x.Name,
-            Description = x.Description,
-            OwnerId = x.CreatedById,
-            CreatedAt = x.CreatedDate
-        }).ToListAsync();
+        var userId = currentUser.UserId;
+        
+        return await context.ProjectMembers
+            .Where(x => x.UserId == userId)
+            .Select(x => new ProjectResponse
+            {
+                ProjectId = x.ProjectId,
+                Name = x.Project.Name, 
+                Description = x.Project.Description,
+                OwnerId = x.Project.CreatedById,
+                CreatedAt = x.Project.CreatedDate
+            }).ToListAsync();
     }
 
     public async Task<ProjectResponse?> GetByIdAsync(int id)
     {
+        
         return await context.Projects
             .Where(x => x.ProjectId == id)
             .Select(x => new ProjectResponse

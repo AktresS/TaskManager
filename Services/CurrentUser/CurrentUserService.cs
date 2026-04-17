@@ -32,5 +32,19 @@ public class CurrentUserService : ICurrentUserService
         }
     }
 
-    int ICurrentUserService.UserId { get => UserId; set => throw new NotImplementedException(); }
+    public string UserName
+    {
+        get
+        {
+            var userNameClaim = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
+
+            if (string.IsNullOrEmpty(userNameClaim))
+            {
+                throw new UnauthorizedAccessException("Невозможно определить имя пользователя из токена");
+            }
+
+            return userNameClaim;
+        }
+    }
+
 }

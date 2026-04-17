@@ -11,6 +11,8 @@ using TaskManager.Services.ProjectAuthorization;
 using TaskManager.Services.ProjectMembers;
 using TaskManager.Services.ProjectMessages;
 using TaskManager.Services.Projects;
+using TaskManager.Services.WorkItemAssignees;
+using TaskManager.Services.WorkItems;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,8 @@ builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationSer
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 builder.Services.AddScoped<IProjectMessageService, ProjectMessageService>();
+builder.Services.AddScoped<IWorkItemService, WorkItemService>();
+builder.Services.AddScoped<IWorkItemAssigneeService, WorkItemAssigneeService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
