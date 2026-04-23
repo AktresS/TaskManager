@@ -169,7 +169,6 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
 
         if (item.ProjectId != null)
         {
-            
             var isAssignee = item.Assignees.Any(x => x.UserId == currentUser.UserId);
             var role = await auth.GetUserRole(item.ProjectId.Value);
 
