@@ -36,7 +36,6 @@ builder.Services.AddScoped<IProjectMessageService, ProjectMessageService>();
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<IWorkItemAssigneeService, WorkItemAssigneeService>();
 builder.Services.AddScoped<IWorkItemMessageService, WorkItemMessageService>();
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
