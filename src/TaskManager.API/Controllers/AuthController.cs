@@ -1,40 +1,36 @@
-using Microsoft.AspNetCore.Http;
+using BaseLibrary.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TaskManager.Dtos.Auth;
 using TaskManager.Services.Auth;
 
 namespace TaskManager.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class AuthController(IAuthService authService) : ControllerBase
     {
         [HttpPost("register")]
-        public async Task<ActionResult<AuthResponse>> Register(RegisterRequest registerRequest)
+        public async Task<IActionResult> CreateAsync(Register user)
         {
-            var user = await authService.RegisterAsync(registerRequest);
-
-            if (user is null)
-                return BadRequest("Email or name already exists");
-
-            return Ok(user);
+            if (user == null) return BadRequest("Model is empty");
+            var result = await authService.CreateAsync(user);
+            return Ok(result);
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<AuthResponse>> Login(LoginRequest loginRequest)
+        public async Task<IActionResult> Login(Login user)
         {
-            var user = await authService.LoginAsync(loginRequest);
-            if (user is null)
-                return BadRequest("Invalid email or password");
-
-            return Ok(user);
+            if (user == null) return BadRequest("Model is empty");
+            var result = await authService.SignInAsync(user);
+            return Ok(result);
         }
 
-        [HttpPost("refresh")]
-        public async Task<ActionResult<AuthResponse>> Refresh(RefreshRequest request)
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshTokenAsync(RefreshTokenValue token)
         {
-            var result = await authService.RefreshAsync(request);
-
+            if (token == null) return BadRequest("Model is empty");
+            var result = await authService.RefreshTokenAsync(token);
             return Ok(result);
         }
     }

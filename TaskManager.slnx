@@ -1,6 +1,12 @@
 <Solution>
-  <Folder Name="/src/" />
+  <Folder Name="/src/">
+    <Project Path="src/BaseLibrary/BaseLibrary.csproj" />
+    <Project Path="src/ClientLibrary/ClientLibrary.csproj" />
+  </Folder>
   <Folder Name="/src/TaskManager.API/">
     <Project Path="src/TaskManager.API/TaskManager.csproj" />
+  </Folder>
+  <Folder Name="/src/TaskManager.Client/">
+    <Project Path="src/TaskManager.Client/TaskManagerClient/TaskManagerClient.csproj" />
   </Folder>
 </Solution>

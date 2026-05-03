@@ -58,3 +58,11 @@ appsettings.Development.json
 .vscode/
 
 Commands
+
+# Frontend
+node_modules/
+**/wwwroot/lib/
+
+# Env
+.env
+.env.*

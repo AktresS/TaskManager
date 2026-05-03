@@ -36,4 +36,8 @@
     <Folder Include="Services\WorkItemAssignees\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BaseLibrary\BaseLibrary.csproj" />
+  </ItemGroup>
+
 </Project>
