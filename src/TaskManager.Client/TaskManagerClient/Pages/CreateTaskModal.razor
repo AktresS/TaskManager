@@ -1,0 +1,70 @@
+﻿@if (IsOpen)
+{
+    <div class="modal-backdrop-custom">
+        <div class="modal-container">
+
+            <h4 class="mb-3">Создать задачу</h4>
+
+            <EditForm Model="model" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+
+                <div class="mb-2">
+                    <InputText class="form-control" placeholder="Название"
+                               @bind-Value="model.Title" />
+                </div>
+
+                <div class="mb-2">
+                    <InputText class="form-control" placeholder="Описание"
+                               @bind-Value="model.Description" />
+                </div>
+
+                <div class="mb-2">
+                    <InputSelect class="form-control" @bind-Value="model.Priority">
+                        @foreach (var p in Enum.GetValues<TaskPriority>())
+                        {
+                            <option value="@p">@p</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <InputDate class="form-control" @bind-Value="model.DeadLine" />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-primary">Создать</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close">
+                        Отмена
+                    </button>
+                </div>
+            </EditForm>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<CreatePersonalWorkItemRequest> OnSave { get; set; }
+
+    private CreatePersonalWorkItemRequest model = new()
+    {
+        DeadLine = DateTime.Today.AddDays(1)
+    };
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync(model);
+
+        model = new CreatePersonalWorkItemRequest
+        {
+            DeadLine = DateTime.Today.AddDays(1)
+        };
+    }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

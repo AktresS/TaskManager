@@ -1,28 +1,33 @@
 ﻿@page "/identity/account/login"
-<div class="container">
-    <div class="row">
-        <div class="col-lg-6">
-            <EditForm Enhance Model="User" OnValidSubmit="HandleLogin">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-                <div class="card">
-                    <div class="card-header">Fill this form to Login</div>
-                    <div class="card-body">
-                        <div class="form-group mt-3">
-                            <label class="form-label">Email</label>
-                            <InputText @bind-Value="User.Email" class="form-control"></InputText>
-                        </div>
-                        <div class="form-group mt-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" @bind="User.Password" class="form-control" />
-                        </div>
-                        <div class="form-group mt-3">
-                            <button class="btn btn-outline-primary float-end" type="submit">Login</button>
-                        </div>
-                    </div>
-                </div>
-            </EditForm>
-        </div>
+@layout AuthenticationLayout
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <h2>Welcome back</h2>
+        <p class="auth-subtitle">Sign in to continue</p>
+
+        <EditForm Model="User" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-field">
+                <label>Email</label>
+                <InputText @bind-Value="User.Email" class="form-control" />
+            </div>
+
+            <div class="form-field">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="User.Password" class="form-control" />
+            </div>
+
+            <button class="btn-auth" type="submit">Login</button>
+        </EditForm>
+
+        <p class="auth-footer">
+            Don't have an account?
+            <a href="/identity/account/register">Register</a>
+        </p>
+
     </div>
 </div>
 
@@ -35,7 +40,7 @@
         {
             var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
             await customAuthStateProvider.UpdateAuthenticationState(new UserSession() { Token = result.Token, RefreshToken = result.RefreshToken });
-            NavManager.NavigateTo("/", forceLoad: true);
+            NavManager.NavigateTo("/my-tasks", forceLoad: true);
         }
     }
 }

@@ -20,7 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pages\AccountPages\" />
+    <Folder Include="wwwroot\images\" />
+    <Folder Include="wwwroot\images\background\" />
   </ItemGroup>
 
 </Project>

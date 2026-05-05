@@ -1,0 +1,91 @@
+
+/* Контейнер */
+.landing-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100vh;
+    padding: 0 180px;
+}
+
+/* Левая часть */
+.landing-content {
+    max-width: 500px;
+}
+
+/* Заголовок */
+.title {
+    font-size: 48px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Подзаголовок */
+.subtitle {
+    font-size: 18px;
+    color: #b0b0b0;
+    margin-bottom: 30px;
+}
+
+/* Кнопки */
+.buttons {
+    display: flex;
+    gap: 15px;
+}
+
+/* Общий стиль кнопок */
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: 0.2s;
+}
+
+/* Primary кнопка */
+.btn.primary {
+    background-color: #3a3a3a;
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: #505050;
+}
+
+/* Secondary кнопка */
+.btn.secondary {
+    border: 1px solid #555;
+    color: #ddd;
+}
+
+.btn.secondary:hover {
+    background-color: #2a2a2a;
+}
+
+.preview {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* сама картинка */
+.preview img {
+    width: 800px;
+    max-width: 100%;
+    border-radius: 16px;
+
+    /* мягкая тень */
+    box-shadow: 
+        0 30px 80px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(100, 100, 100, 0.15);
+
+    /* лёгкий эффект */
+    transform: perspective(1200px) rotateY(-5deg) rotateX(2deg);
+    transition: all 0.3s ease;
+}
+
+/* hover эффект */
+.preview img:hover {
+    transform: perspective(1200px) rotateY(0deg) rotateX(0deg) scale(1.02);
+}

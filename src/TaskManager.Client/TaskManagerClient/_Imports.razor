@@ -9,12 +9,15 @@
 @using TaskManagerClient
 @using TaskManagerClient.Layout
 @using Microsoft.AspNetCore.Components.Authorization
-
+@using Microsoft.AspNetCore.Authorization
 
 @using BaseLibrary.DTOs
 @using ClientLibrary.Helpers
 @using ClientLibrary.Services.Contracts
+@using BaseLibrary.Responses
+@using BaseLibrary.DTOs.TaskDtos
+@using BaseLibrary.Enums
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IUserAccountService accountService
 @inject NavigationManager NavManager
-
+@inject IWorkItemService TaskService

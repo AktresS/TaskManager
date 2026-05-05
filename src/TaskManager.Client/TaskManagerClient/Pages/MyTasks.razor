@@ -1,0 +1,234 @@
+﻿@page "/my-tasks"
+
+@attribute [Authorize]
+<PageTitle>Мои задачи</PageTitle>
+
+<h2 class="mb-4">📋 Мои задачи</h2>
+
+<button class="btn btn-primary mb-3" @onclick="OpenCreateModal">
+    ➕ Создать задачу
+</button>
+
+@if (isLoading)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border" role="status"></div>
+        <p class="mt-2 text-muted">Загрузка задач...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">
+        Ошибка: @error
+    </div>
+}
+else
+{
+    @if (tasks == null || tasks.Count == 0)
+    {
+        <div class="alert alert-info">
+            У вас пока нет задач
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+
+            @foreach (var task in tasks)
+            {
+                <div class="card shadow-sm border-0 task-card">
+                    <div class="card-body">
+
+                        <!-- Верх -->
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1">@task.Title</h5>
+                                <div class="text-muted small">
+                                    @(task.ProjectName ?? "Личная задача")
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <span class="badge @GetPriorityClass(task.Priority)">
+                                    @task.Priority
+                                </span>
+
+                                <span class="badge @GetStateClass(task.State)">
+                                    @task.State
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Описание -->
+                        @if (!string.IsNullOrEmpty(task.Description))
+                        {
+                            <p class="mt-2 text-secondary">@task.Description</p>
+                        }
+
+                        <!-- Низ -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+
+                            <span class="@GetDeadlineClass(task.DeadLine)">
+                                📅 @task.DeadLine.ToString("dd.MM.yyyy")
+                            </span>
+
+                            <div>
+                                @foreach (var a in task.Assignees.Take(3))
+                                {
+                                    <span class="badge bg-secondary me-1">@a.Name</span>
+                                }
+                                @if (task.Assignees.Count > 3)
+                                {
+                                    <span class="text-muted">
+                                        +@(task.Assignees.Count - 3)
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="d-flex gap-2">
+
+                                <button class="btn btn-sm btn-success"
+                                        @onclick="() => MarkDone(task.Id)">
+                                    ✔
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="() => StartEdit(task)">
+                                    ✏️
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => Delete(task.Id)">
+                                    🗑
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            }
+
+        </div>
+        <EditTaskModal IsOpen="isModalOpen" Model="editModel" OnSave="SaveEdit" OnClose="CloseModal" />
+        <CreateTaskModal IsOpen="isCreateModalOpen" OnClose="CloseCreateModal" OnSave="HandleCreate" />
+    }
+}
+
+@code {
+    private List<WorkItemResponse>? tasks;
+    private bool isLoading = true;
+    private string? error;
+    private WorkItemResponse? editingTask;
+    private UpdateWorkItemRequest editModel = new();
+    private bool isModalOpen = false;
+    private bool isCreateModalOpen = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTasks();
+    }
+
+    private async Task LoadTasks()
+    {
+        isLoading = true;
+        error = null;
+        
+        try
+        {
+            tasks = await TaskService.GetMyAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetPriorityClass(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => "bg-success",
+        TaskPriority.Medium => "bg-warning text-dark",
+        TaskPriority.High => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private string GetStateClass(TaskState state) => state switch
+    {
+        TaskState.New => "bg-secondary",
+        TaskState.InProgress => "bg-primary",
+        TaskState.Completed => "bg-success",
+        _ => "bg-secondary"
+    };
+    private string GetDeadlineClass(DateTime date)
+    {
+        if (date < DateTime.Now)
+            return "text-danger";
+
+        if ((date - DateTime.Now).Days <= 2)
+            return "text-warning";
+
+        return "";
+    }
+    private async Task MarkDone(int id)
+    {
+        await TaskService.UpdateAsync(id, new UpdateWorkItemRequest
+        {
+            State = TaskState.Completed
+        });
+
+        await LoadTasks();
+    }
+    private async Task Delete(int id)
+    {
+        await TaskService.DeleteAsync(id);
+        await LoadTasks();
+    }
+    private void StartEdit(WorkItemResponse task)
+    {
+        editingTask = task;
+
+        editModel = new UpdateWorkItemRequest
+        {
+            Title = task.Title,
+            Description = task.Description,
+            Priority = task.Priority,
+            State = task.State,
+            DeadLine = task.DeadLine
+        };
+
+        isModalOpen = true;
+    }
+    private async Task SaveEdit(UpdateWorkItemRequest model)
+    {
+        if (editingTask == null) return;
+        await TaskService.UpdateAsync(editingTask.Id, model);
+        isModalOpen = false;
+        await LoadTasks();
+    }
+    private void CloseModal()
+    {
+        isModalOpen = false;
+    }
+    private void OpenCreateModal()
+    {
+        isCreateModalOpen = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        isCreateModalOpen = false;
+    }
+
+    private async Task HandleCreate(CreatePersonalWorkItemRequest model)
+    {
+        await TaskService.CreatePersonalAsync(model);
+
+        isCreateModalOpen = false;
+        await LoadTasks();
+    }
+}

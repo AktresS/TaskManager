@@ -1,6 +1,57 @@
 ﻿@page "/identity/account/register"
-<h3>RegisterPage</h3>
+@layout AuthenticationLayout
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <h2>Create account</h2>
+        <p class="auth-subtitle">Sign up to get started</p>
+
+        <EditForm Model="User" OnValidSubmit="HandleRegistration">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-field">
+                <label>Full name</label>
+                <InputText @bind-Value="User.Name" class="form-control" />
+            </div>
+
+            <div class="form-field">
+                <label>Email</label>
+                <InputText @bind-Value="User.Email" class="form-control" />
+            </div>
+
+            <div class="form-field">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="User.Password" class="form-control" />
+            </div>
+
+            <div class="form-field">
+                <label>Confirm password</label>
+                <InputText type="password" @bind-Value="User.ConfirmPassword" class="form-control" />
+            </div>
+
+            <button class="btn-auth" type="submit">Register</button>
+        </EditForm>
+
+        <p class="auth-footer">
+            Already have an account?
+            <a href="/identity/account/login">Login</a>
+        </p>
+
+    </div>
+</div>
 
 @code {
+    Register User = new();
 
+    async Task HandleRegistration()
+    {
+        var result = await accountService.CreateAsync(User);
+
+        if (result.Flag)
+        {
+            NavManager.NavigateTo("/identity/account/login");
+        }
+    }
 }
