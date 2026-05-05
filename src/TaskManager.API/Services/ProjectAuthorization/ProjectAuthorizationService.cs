@@ -1,7 +1,7 @@
 using System;
+using BaseLibrary.Enums;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
-using TaskManager.Enums;
 using TaskManager.Services.CurrentUser;
 
 namespace TaskManager.Services.ProjectAuthorization;

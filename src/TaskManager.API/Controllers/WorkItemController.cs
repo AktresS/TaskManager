@@ -1,7 +1,8 @@
+using BaseLibrary.DTOs.TaskDtos;
+using BaseLibrary.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using TaskManager.Dtos.WorkItem;
 using TaskManager.Services.WorkItems;
 
 namespace TaskManager.Controllers
@@ -27,7 +28,7 @@ namespace TaskManager.Controllers
             return Ok(task);
         }
 
-        [HttpGet]
+        [HttpGet("my-tasks")]
         public async Task<ActionResult<WorkItemResponse>> GetMyTask()
         {
             var task = await service.GetMyItemAsync();
@@ -60,6 +61,13 @@ namespace TaskManager.Controllers
             var task = await service.UpdateAsync(workId, request);
 
             return Ok(task);
+        }
+
+        [HttpPatch("{workId}/move")]
+        public async Task<IActionResult> Move(int workId, MoveWorkItemRequest request)
+        {
+            await service.MoveAsync(workId, request);
+            return NoContent();
         }
 
         [HttpDelete("{workId}")]

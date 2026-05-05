@@ -6,6 +6,8 @@ using Scalar.AspNetCore;
 using TaskManager.Data;
 using TaskManager.Security;
 using TaskManager.Services.Auth;
+using TaskManager.Services.Boards;
+using TaskManager.Services.Columns;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.ProjectAuthorization;
 using TaskManager.Services.ProjectMembers;
@@ -35,6 +37,8 @@ builder.Services.AddScoped<IProjectMessageService, ProjectMessageService>();
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<IWorkItemAssigneeService, WorkItemAssigneeService>();
 builder.Services.AddScoped<IWorkItemMessageService, WorkItemMessageService>();
+builder.Services.AddScoped<IBoardService, BoardService>();
+builder.Services.AddScoped<IColumnService, ColumnService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

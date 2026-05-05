@@ -1,8 +1,8 @@
 using System;
+using BaseLibrary.Enums;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Dtos.WorkItemMessage;
-using TaskManager.Enums;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.ProjectAuthorization;

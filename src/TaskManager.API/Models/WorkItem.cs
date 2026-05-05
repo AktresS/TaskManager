@@ -1,8 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.SignalR;
-using TaskManager.Enums;
+using BaseLibrary.Enums;
 
 namespace TaskManager.Models;
 
@@ -42,4 +41,7 @@ public class WorkItem
     public ICollection<WorkItemAssignee> Assignees { get; set; } = new List<WorkItemAssignee>();
     
     public ICollection<WorkItemMessage> Messages { get; set; } = new List<WorkItemMessage>();
+
+    public int? ColumnId { get; set; }
+    public BoardColumn? Column { get; set; }
 }

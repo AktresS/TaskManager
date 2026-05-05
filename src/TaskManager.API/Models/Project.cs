@@ -32,4 +32,6 @@ public class Project
     public ICollection<WorkItem> WorkItems { get; set; } = new List<WorkItem>();
 
     public ICollection<ProjectMessage> Messages { get; set; } = new List<ProjectMessage>();
+    
+    public ICollection<Board> Boards { get; set; } = new List<Board>();
 }

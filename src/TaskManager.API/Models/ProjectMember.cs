@@ -1,8 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using TaskManager.Enums;
-
+using BaseLibrary.Enums;
 namespace TaskManager.Models;
 
 public class ProjectMember

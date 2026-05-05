@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WorkItemAssignee> WorkItemAssignees { get; set; }
     public DbSet<WorkItemMessage> WorkItemMessages { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Board> Boards { get; set; }
+    public DbSet<BoardColumn> BoardColumns { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +28,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.ApplyConfiguration(new WorkItemConfiguration());
         modelBuilder.ApplyConfiguration(new WorkItemAssigneeConfiguration());
         modelBuilder.ApplyConfiguration(new WorkItemMessageConfiguration());
+        modelBuilder.ApplyConfiguration(new BoardConfiguration());
+        modelBuilder.ApplyConfiguration(new BoardColumnConfiguration());
 
         base.OnModelCreating(modelBuilder);
     }
@@ -107,6 +111,11 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
             .HasForeignKey(x => x.CreatedById)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(x => x.Column)
+            .WithMany(x => x.WorkItems)
+            .HasForeignKey(x => x.ColumnId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Property(x => x.State)
             .HasConversion<string>()
             .HasMaxLength(20);
@@ -164,6 +173,32 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasOne(x => x.User)
             .WithMany(x => x.RefreshTokens)
             .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class BoardConfiguration : IEntityTypeConfiguration<Board>
+{
+    public void Configure(EntityTypeBuilder<Board> builder)
+    {
+        builder.HasKey(x => x.Id);
+
+        builder.HasOne(x => x.Project)
+            .WithMany(x => x.Boards)
+            .HasForeignKey(x => x.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class BoardColumnConfiguration : IEntityTypeConfiguration<BoardColumn>
+{
+    public void Configure(EntityTypeBuilder<BoardColumn> builder)
+    {
+        builder.HasKey(x => x.Id);
+
+        builder.HasOne(x => x.Board)
+            .WithMany(x => x.Columns)
+            .HasForeignKey(x => x.BoardId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

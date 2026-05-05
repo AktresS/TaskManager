@@ -25,8 +25,9 @@
     <Folder Include="Dtos\ProjectMessage\" />
     <Folder Include="Dtos\WorkItemAssignee\" />
     <Folder Include="Dtos\WorkItemMessage\" />
-    <Folder Include="Enums\" />
     <Folder Include="Security\" />
+    <Folder Include="Services\Boards\" />
+    <Folder Include="Services\Columns\" />
     <Folder Include="Services\ProjectAuthorization\" />
     <Folder Include="Services\ProjectMembers\" />
     <Folder Include="Services\ProjectMessages\" />

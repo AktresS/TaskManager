@@ -1,6 +1,8 @@
+using BaseLibrary.DTOs.ProjectDtos;
+using BaseLibrary.Enums;
+using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
-using TaskManager.Dtos.Project;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.ProjectAuthorization;
@@ -33,7 +35,7 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
         {
             Project = project,
             UserId = currentUser.UserId,
-            Role = Enums.MemberRole.Owner
+            Role = MemberRole.Owner
         });
 
         await context.SaveChangesAsync();

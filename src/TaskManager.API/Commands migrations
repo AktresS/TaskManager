@@ -3,6 +3,9 @@
 # Создать миграцию
 dotnet ef migrations add ИмяМиграции -s TaskManager.Web -p TaskManager.Data --output-dir Data/Migrations
 
+#Если перейти в корень проекта то можно просто
+dotnet ef migrations add ИмяМиграции
+
 # Применить миграции
 dotnet ef database update -s TaskManager.Web -p TaskManager.Data
 

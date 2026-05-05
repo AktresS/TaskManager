@@ -1,8 +1,9 @@
-using System;
+using BaseLibrary.DTOs;
+using BaseLibrary.DTOs.TaskDtos;
+using BaseLibrary.Enums;
+using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
-using TaskManager.Dtos.WorkItem;
-using TaskManager.Enums;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.ProjectAuthorization;
@@ -32,6 +33,12 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
     public async Task<WorkItemResponse> CreateProjectAsync(int projectId, CreateProjectWorkItemRequest request)
     {
         await auth.EnsureMember(projectId);
+
+        var column = await context.BoardColumns
+            .FirstOrDefaultAsync(c => c.Id == request.ColumnId && c.Board.ProjectId == projectId);
+    
+        if (column == null)
+            throw new Exception("Invalid column for this project");
 
         var assigneesToAdd = new List<WorkItemAssignee>();
 
@@ -66,16 +73,17 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             Priority = request.Priority,
             DeadLine = DateTime.SpecifyKind(request.DeadLine, DateTimeKind.Utc),
             CreatedById = currentUser.UserId,
-            ProjectId = projectId
+            ProjectId = projectId,
+            ColumnId = request.ColumnId
         };
+
+        context.WorkItems.Add(item);
+        await context.SaveChangesAsync();
 
         foreach (var a in assigneesToAdd)
         {
             a.WorkItemId = item.WorkItemId;
         }
-
-        context.WorkItems.Add(item);
-        await context.SaveChangesAsync();
 
         context.WorkItemAssignees.AddRange(assigneesToAdd);
         await context.SaveChangesAsync();
@@ -89,6 +97,7 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
 
         var items = await context.WorkItems
             .Include(x => x.Assignees)
+                .ThenInclude(x => x.User)
             .Include(x => x.CreatedBy)
             .Include(x => x.Project)
             .Where(x => x.CreatedById == userId || x.Assignees.Any(x => x.UserId == userId))
@@ -102,6 +111,7 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
     {
         var item = await context.WorkItems
         .Include(w => w.Assignees)
+            .ThenInclude(x => x.User)
         .Include(w => w.Project)
         .Include(w => w.CreatedBy)
         .FirstOrDefaultAsync(w => w.WorkItemId == id);
@@ -130,6 +140,7 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
 
         var items = await context.WorkItems
             .Include(x => x.Assignees)
+                .ThenInclude(x => x.User)
             .Include(x => x.CreatedBy)
             .Where(x => x.ProjectId == projectId)
             .OrderByDescending(x => x.CreatedDate)
@@ -150,9 +161,23 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             DeadLine = item.DeadLine,
             ProjectId = item.ProjectId,
             ProjectName = item.Project?.Name,
+            ColumnId = item.ColumnId,
             CreatedById = item.CreatedById,
             CreatedByName = item.CreatedBy.Name,
-            AssigneeIds = item.ProjectId == null ? new List<int> { item.CreatedById } : item.Assignees.Select(a => a.UserId).ToList()
+            Assignees = item.ProjectId == null 
+                ? new List<UserShortDto>
+                {
+                    new UserShortDto
+                    {
+                        Id = item.CreatedById,
+                        Name = item.CreatedBy.Name
+                    }
+                } 
+                : item.Assignees.Select(a => new UserShortDto
+                {
+                    Id = a.UserId,
+                    Name = a.User.Name
+                }).ToList()
         };
     }
 
@@ -204,6 +229,32 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
         return await GetByIdAsync(item.WorkItemId);
     }
 
+    public async Task MoveAsync(int workItemId, MoveWorkItemRequest request)
+    {
+        var item = await context.WorkItems
+            .FirstOrDefaultAsync(x => x.WorkItemId == workItemId);
+
+        if (item == null)
+            throw new Exception("Task not found");
+
+        var column = await context.BoardColumns
+            .Include(c => c.Board)
+            .FirstOrDefaultAsync(c => c.Id == request.ColumnId);
+
+        if (column == null)
+            throw new Exception("Column not found");
+
+        // 🔐 проверка доступа через проект
+        await auth.EnsureMember(column.Board.ProjectId);
+
+        item.ColumnId = request.ColumnId;
+
+        // (опционально) обновление позиции
+        // item.Order = request.Order;
+
+        await context.SaveChangesAsync();
+    }
+    
     public async Task DeleteAsync(int id)
     {
         var item = await context.WorkItems
