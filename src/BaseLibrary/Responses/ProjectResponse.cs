@@ -1,5 +1,3 @@
-using System;
-
 namespace BaseLibrary.Responses;
 
 public class ProjectResponse

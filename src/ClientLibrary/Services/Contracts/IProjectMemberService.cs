@@ -1,7 +1,8 @@
+
 using BaseLibrary.DTOs.ProjectMemberDtos;
 using BaseLibrary.Responses;
 
-namespace TaskManager.Services.ProjectMembers;
+namespace ClientLibrary.Services.Contracts;
 
 public interface IProjectMemberService
 {

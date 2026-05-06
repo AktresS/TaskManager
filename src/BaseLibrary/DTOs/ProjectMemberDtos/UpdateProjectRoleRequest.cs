@@ -1,6 +1,6 @@
 using BaseLibrary.Enums;
 
-namespace TaskManager.Dtos;
+namespace BaseLibrary.DTOs.ProjectMemberDtos;
 
 public class UpdateProjectRoleRequest
 {

@@ -1,5 +1,5 @@
 
-namespace TaskManager.Dtos.WorkItemAssignee;
+namespace BaseLibrary.Responses;
 
 public class WorkItemAssigneeResponse
 {

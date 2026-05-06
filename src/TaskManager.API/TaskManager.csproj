@@ -22,9 +22,6 @@
   <ItemGroup>
     <Folder Include="Controllers\" />
     <Folder Include="Data\" />
-    <Folder Include="Dtos\ProjectMessage\" />
-    <Folder Include="Dtos\WorkItemAssignee\" />
-    <Folder Include="Dtos\WorkItemMessage\" />
     <Folder Include="Security\" />
     <Folder Include="Services\Boards\" />
     <Folder Include="Services\Columns\" />

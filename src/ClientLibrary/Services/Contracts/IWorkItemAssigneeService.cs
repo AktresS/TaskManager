@@ -1,7 +1,7 @@
 using BaseLibrary.DTOs.AssigneeDtos;
 using BaseLibrary.Responses;
 
-namespace TaskManager.Services.WorkItemAssignees;
+namespace ClientLibrary.Services.Contracts;
 
 public interface IWorkItemAssigneeService
 {

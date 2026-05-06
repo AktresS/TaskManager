@@ -2,7 +2,7 @@
 
 using BaseLibrary.Enums;
 
-namespace TaskManager.Dtos;
+namespace BaseLibrary.Responses;
 
 public class ProjectMemberResponse
 {

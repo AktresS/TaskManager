@@ -1,7 +1,7 @@
 using BaseLibrary.DTOs.WorkItemMessageDtos;
 using BaseLibrary.Responses;
 
-namespace TaskManager.Services.WorkItemMessages;
+namespace ClientLibrary.Services.Contracts;
 
 public interface IWorkItemMessageService
 {

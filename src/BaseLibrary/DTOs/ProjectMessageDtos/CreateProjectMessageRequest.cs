@@ -1,6 +1,6 @@
-namespace TaskManager.Dtos.WorkItemMessage;
+namespace BaseLibrary.DTOs.ProjectMessageDtos;
 
-public class CreateWorkItemMessageRequest
+public class CreateProjectMessageRequest
 {
     public string? Text { get; set; }
     public string? AttachmentUrl { get; set; }

@@ -27,5 +27,9 @@ builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IColumnService, ColumnService>();
+builder.Services.AddScoped<IWorkItemAssigneeService, WorkItemAssigneeService>();
+builder.Services.AddScoped<IWorkItemMessageService, WorkItemMessageService>();
+builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
+builder.Services.AddScoped<IProjectMessageService, ProjectMessageService>();
 
 await builder.Build().RunAsync();

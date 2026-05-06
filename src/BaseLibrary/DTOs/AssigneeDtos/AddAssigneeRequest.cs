@@ -1,4 +1,4 @@
-namespace TaskManager.Dtos.WorkItemAssignee;
+namespace BaseLibrary.DTOs.AssigneeDtos;
 
 public class AddAssigneeRequest
 {

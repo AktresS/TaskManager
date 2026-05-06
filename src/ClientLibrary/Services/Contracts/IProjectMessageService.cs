@@ -2,7 +2,7 @@
 using BaseLibrary.DTOs.ProjectMessageDtos;
 using BaseLibrary.Responses;
 
-namespace TaskManager.Services.ProjectMessages;
+namespace ClientLibrary.Services.Contracts;
 
 public interface IProjectMessageService
 {
