@@ -1,0 +1,442 @@
+﻿@page "/projects/{ProjectId:int}/board"
+@attribute [Authorize]
+
+
+<PageTitle>Доска проекта</PageTitle>
+
+<!-- Хедер -->
+<div class="board-header">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       Size="Size.Small"
+                       Style="color:#555;"
+                       OnClick='() => NavManager.NavigateTo("/projects")' />
+        <div>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.3px;">
+                Канбан доска
+            </MudText>
+        </div>
+    </div>
+
+    <!-- Переключалка досок -->
+    <div style="display:flex; align-items:center; gap:8px;">
+        @if (boards.Count > 0)
+        {
+            <div class="board-tabs">
+                @foreach (var board in boards)
+                {
+                    <button class="board-tab @(activeBoardId == board.Id ? "active" : "")"
+                            @onclick="() => SwitchBoard(board.Id)">
+                        @board.Name
+                        @if (boards.Count > 1)
+                        {
+                            <span class="tab-delete" @onclick:stopPropagation="true"
+                                  @onclick="() => ConfirmDeleteBoard(board)">×</span>
+                        }
+                    </button>
+                }
+            </div>
+        }
+
+        <MudTooltip Text="Новая доска">
+            <MudIconButton Icon="@Icons.Material.Filled.AddBox"
+                           Size="Size.Small"
+                           Style="color:#555;"
+                           OnClick="OpenCreateBoardModal" />
+        </MudTooltip>
+    </div>
+</div>
+
+<!-- Состояния -->
+@if (isLoading)
+{
+    <div class="columns-row">
+        @for (int i = 0; i < 3; i++)
+        {
+            <div class="column-skeleton"></div>
+        }
+    </div>
+}
+else if (boards.Count == 0)
+{
+    <div class="empty-state">
+        <MudIcon Icon="@Icons.Material.Outlined.Dashboard" Style="font-size:48px; color:#2a2a2a;" />
+        <MudText Typo="Typo.body1" Style="color:#444; margin-top:16px;">Досок пока нет</MudText>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateBoardModal"
+                   Style="margin-top:16px; border-radius:10px; text-transform:none; border-color:#2a2a2a; color:#666;">
+            Создать доску
+        </MudButton>
+    </div>
+}
+else
+{
+    <div class="columns-row">
+        @foreach (var column in columns)
+        {
+            var col = column;
+            <div class="kanban-column"
+                @key="col.Id"
+                @ondragover:preventDefault="true"
+                @ondrop="() => OnDrop(col.Id)"
+                @ondrop:preventDefault="true">
+
+                <!-- Заголовок колонки -->
+                <div class="column-header">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="column-dot" style="background:@GetColumnColor(col.Order);"></div>
+                        <span class="column-name">@col.Name</span>
+                        <span class="column-count">@col.WorkItems.Count</span>
+                    </div>
+
+                    <div class="column-actions">
+                        <MudTooltip Text="Добавить задачу">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Small"
+                                           Style="color:#444; padding:2px;"
+                                           OnClick="() => OpenAddTaskModal(col.Id)" />
+                        </MudTooltip>
+                        <MudTooltip Text="Удалить колонку">
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Size="Size.Small"
+                                           Style="color:#444; padding:2px;"
+                                           OnClick="() => ConfirmDeleteColumn(col)" />
+                        </MudTooltip>
+                    </div>
+                </div>
+
+                <!-- Карточки задач -->
+                <div class="column-cards">
+                    @foreach (var task in col.WorkItems)
+                    {
+                        var t = task;
+                        <div class="task-card @(draggingTaskId == t.Id ? "dragging" : "")"
+                             @key="t.Id"
+                             draggable="true"
+                             @ondragstart="() => OnDragStart(t.Id)"
+                             @ondragend="OnDragEnd"
+                             @onclick="() => OpenTaskDetail(t)">
+
+                            <div class="task-card-top">
+                                <div class="priority-dot @GetPriorityDot(t.Priority)"></div>
+                                <span class="state-pill @GetStatePill(t.State)">
+                                    @GetStateLabel(t.State)
+                                </span>
+                            </div>
+
+                            <div class="task-title">@t.Title</div>
+
+                            @if (!string.IsNullOrEmpty(t.Description))
+                            {
+                                <div class="task-desc">@t.Description</div>
+                            }
+
+                            <div class="task-footer">
+                                <span class="deadline @GetDeadlineClass(t.DeadLine)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                             Style="font-size:11px;" />
+                                    @t.DeadLine.ToString("dd MMM")
+                                </span>
+
+                                @if (t.State != TaskState.Completed)
+                                {
+                                    <MudTooltip Text="Завершить">
+                                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircleOutline"
+                                                       Size="Size.Small"
+                                                       Style="color:#444; padding:2px; margin-left:auto;"
+                                                       OnClick="() => MarkDone(t)"/>
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                             Style="font-size:16px; color:#22c55e; margin-left:auto;" />
+                                }
+
+                                <div @onclick:stopPropagation="true">
+                                    <MudTooltip Text="Удалить">
+                                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                                    Size="Size.Small"
+                                                    Style="color:#444; padding:4px;"
+                                                    OnClick="() => Delete(t.Id)" />
+                                    </MudTooltip>
+                                </div>
+                            </div>
+
+                        </div>
+                    }
+                </div>
+
+            </div>
+        }
+
+        <div class="add-column-btn" @onclick="OpenCreateColumnModal">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Style="font-size:18px; color:#444;" />
+            <span>Добавить колонку</span>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int ProjectId { get; set; }
+
+    private List<BoardBaseResponse> boards = new();
+    private List<ColumnBaseResponse> columns = new();
+    private int? activeBoardId;
+    private bool isLoading = true;
+
+    private int? draggingTaskId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoards();
+    }
+
+    private async Task LoadBoards()
+    {
+        isLoading = true;
+        try
+        {
+            boards = await BoardService.GetByProjectAsync(ProjectId);
+            if (boards.Count > 0)
+            {
+                activeBoardId = boards[0].Id;
+                await LoadColumns();
+            }
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task LoadColumns()
+    {
+        if (activeBoardId is null) return;
+        columns = await ColumnService.GetByBoardAsync(activeBoardId.Value);
+    }
+
+
+    private async Task SaveMoveAsync(int taskId, int columnId)
+    {
+        try
+        {
+            await TaskService.MoveAsync(taskId, columnId);
+        }
+        catch
+        {
+            // rollback можно позже добавить
+        }
+    }
+
+    private async Task SwitchBoard(int boardId)
+    {
+        activeBoardId = boardId;
+        isLoading = true;
+        await LoadColumns();
+        isLoading = false;
+    }
+
+    // ── Drag & Drop ──
+
+    private void OnDragStart(int taskId) => draggingTaskId = taskId;
+    private void OnDragEnd() { draggingTaskId = null; }
+
+
+    private async Task OnDrop(int targetColumnId)
+    {
+        if (draggingTaskId is null) return;
+
+        WorkItemResponse? task = null;
+        ColumnBaseResponse? sourceCol = null;
+
+        foreach (var col in columns)
+        {
+            var found = col.WorkItems.FirstOrDefault(t => t.Id == draggingTaskId);
+            if (found != null) { task = found; sourceCol = col; break; }
+        }
+
+        draggingTaskId = null;
+
+        if (task is null || sourceCol is null || sourceCol.Id == targetColumnId) return;
+
+        // Оптимистичное обновление — UI меняется мгновенно
+        sourceCol.WorkItems.Remove(task);
+        columns.First(c => c.Id == targetColumnId).WorkItems.Add(task);
+
+        // Запрос на сервер в фоне — не ждём
+        _ = SaveMoveAsync(task.Id, targetColumnId);
+    }
+
+    // ── Задачи ──
+
+    private async Task OpenTaskDetail(WorkItemResponse task)
+    {
+        var parameters = new DialogParameters<EditProjectTaskModal>
+        {
+            { x => x.WorkItem, task },
+            { x => x.ProjectId, ProjectId },
+            { x => x.OnSave, EventCallback.Factory.Create<WorkItemResponse>(this, _ => LoadColumns()) }
+        };
+
+        await DialogService.ShowAsync<EditProjectTaskModal>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+    }
+
+    private async Task MarkDone(WorkItemResponse task)
+    {
+        task.State = TaskState.Completed;
+        _ = TaskService.UpdateAsync(task.Id, new UpdateWorkItemRequest { State = TaskState.Completed });
+    }
+    private async Task Delete(int id)
+    {
+        await TaskService.DeleteAsync(id);
+        await LoadColumns();
+    }
+
+    // ── Доски ──
+
+    private async Task OpenCreateBoardModal()
+    {
+        var parameters = new DialogParameters<CreateNameModal>
+        {
+            { x => x.Title, "Новая доска" },
+            { x => x.Label, "Название доски" },
+            { x => x.Icon, Icons.Material.Filled.Dashboard },
+            { x => x.OnSave, EventCallback.Factory.Create<string>(this, async name =>
+                {
+                    await BoardService.CreateAsync(ProjectId, new CreateBoardRequest { Name = name });
+                    await LoadBoards();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<CreateNameModal>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseOnEscapeKey = true });
+    }
+
+    private async Task ConfirmDeleteBoard(BoardBaseResponse board)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Title, "Удалить доску?" },
+            { x => x.Message, $"Доска «{board.Name}» будет удалена." },
+            { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
+                {
+                    await BoardService.DeleteAsync(ProjectId, board.Id);
+                    await LoadBoards();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+    }
+
+    // ── Колонки ──
+
+    private async Task OpenCreateColumnModal()
+    {
+        if (activeBoardId is null) return;
+
+        var parameters = new DialogParameters<CreateNameModal>
+        {
+            { x => x.Title, "Новая колонка" },
+            { x => x.Label, "Название колонки" },
+            { x => x.Icon, Icons.Material.Filled.ViewColumn },
+            { x => x.OnSave, EventCallback.Factory.Create<string>(this, async name =>
+                {
+                    await ColumnService.CreateAsync(activeBoardId.Value,
+                        new CreateColumnRequest { Name = name });
+                    await LoadColumns();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<CreateNameModal>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseOnEscapeKey = true });
+    }
+
+    private async Task ConfirmDeleteColumn(ColumnBaseResponse column)
+    {
+        if (activeBoardId is null) return;
+
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Title, "Удалить колонку?" },
+            { x => x.Message, $"Колонка «{column.Name}» и все её задачи будут откреплены." },
+            { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
+                {
+                    await ColumnService.DeleteAsync(column.Id, activeBoardId.Value);
+                    await LoadColumns();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+    }
+
+    // ── Задачи ──
+
+    private async Task OpenAddTaskModal(int columnId)
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var parameters = new DialogParameters<CreateProjectTaskModal>
+        {
+            { x => x.ProjectId, ProjectId },
+            { x => x.ColumnId, columnId },
+            { x => x.OnSave, EventCallback.Factory.Create<CreateProjectWorkItemRequest>(this, async model =>
+                {
+                    await TaskService.CreateProjectAsync(ProjectId, columnId, model);
+                    await LoadColumns();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<CreateProjectTaskModal>("", parameters, options);
+    }
+
+    // ── Helpers ──
+
+    private static readonly string[] _columnColors =
+        { "#7c6af7", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2" };
+
+    private string GetColumnColor(int order) =>
+        _columnColors[(order - 1) % _columnColors.Length];
+
+    private string GetPriorityDot(TaskPriority? p) => p switch
+    {
+        TaskPriority.High   => "dot-red",
+        TaskPriority.Medium => "dot-yellow",
+        TaskPriority.Low    => "dot-green",
+        _                   => "dot-gray"
+    };
+
+    private string GetStatePill(TaskState? s) => s switch
+    {
+        TaskState.InProgress => "pill-inprogress",
+        TaskState.Completed  => "pill-done",
+        _                    => "pill-new"
+    };
+
+    private string GetStateLabel(TaskState? s) => s switch
+    {
+        TaskState.New        => "Новая",
+        TaskState.InProgress => "В работе",
+        TaskState.Completed  => "Готово",
+        _                    => "—"
+    };
+
+    private string GetDeadlineClass(DateTime date)
+    {
+        if (date < DateTime.Now) return "overdue";
+        if ((date - DateTime.Now).Days <= 2) return "soon";
+        return "normal";
+    }
+}

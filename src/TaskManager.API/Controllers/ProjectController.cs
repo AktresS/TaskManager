@@ -7,7 +7,7 @@ using TaskManager.Services.Projects;
 namespace TaskManager.Controllers
 {
     [Authorize]
-    [Route("api/[controller]")]
+    [Route("api/projects")]
     [ApiController]
     public class ProjectController(IProjectService projectService) : ControllerBase
     {

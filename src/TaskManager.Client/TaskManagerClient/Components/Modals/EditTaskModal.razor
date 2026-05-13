@@ -1,0 +1,140 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.EditNote" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Редактирование</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:420px;">
+            <EditForm Model="Model" OnValidSubmit="Save" id="edit-task-form">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="Model.Title"
+                            Label="Название"
+                            Variant="Variant.Outlined"
+                            Required="true"
+                            RequiredError="Название обязательно"
+                            Class="mb-4" />
+
+                <MudTextField @bind-Value="Model.Description"
+                            Label="Описание"
+                            Variant="Variant.Outlined"
+                            Lines="3"
+                            Class="mb-4" />
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;" class="mb-4">
+
+                    <MudSelect T="TaskPriority?"
+                            @bind-Value="Model.Priority"
+                            Label="Приоритет"
+                            Variant="Variant.Outlined"
+                            AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var p in Enum.GetValues<TaskPriority>())
+                        {
+                            <MudSelectItem T="TaskPriority?" Value="p">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:8px; height:8px; border-radius:50%; background:@GetPriorityColor(p);"></div>
+                                    @GetPriorityLabel(p)
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="TaskState?"
+                            @bind-Value="Model.State"
+                            Label="Статус"
+                            Variant="Variant.Outlined"
+                            AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var s in Enum.GetValues<TaskState>())
+                        {
+                            <MudSelectItem T="TaskState?" Value="s">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:8px; height:8px; border-radius:50%; background:@GetStateColor(s);"></div>
+                                    @GetStateLabel(s)
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                </div>
+
+                <MudDatePicker @bind-Date="_deadline"
+                            Label="Дедлайн"
+                            Variant="Variant.Outlined"
+                            MinDate="DateTime.Today"
+                            DateFormat="dd.MM.yyyy" />
+
+            </EditForm>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton ButtonType="ButtonType.Submit"
+                   form="edit-task-form"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Сохранить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public UpdateWorkItemRequest Model { get; set; } = new();
+    [Parameter] public EventCallback<UpdateWorkItemRequest> OnSave { get; set; }
+
+    private DateTime? _deadline
+    {
+        get => Model.DeadLine;
+        set => Model.DeadLine = value ?? DateTime.Today;
+    }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync(Model);
+        MudDialog.Close();
+    }
+
+    private void Close() => MudDialog.Cancel();
+
+    private string GetPriorityColor(TaskPriority? p) => p switch
+    {
+        TaskPriority.High   => "#ef4444",
+        TaskPriority.Medium => "#f59e0b",
+        TaskPriority.Low    => "#22c55e",
+        _                   => "#555"
+    };
+
+    private string GetPriorityLabel(TaskPriority? p) => p switch
+    {
+        TaskPriority.High   => "Высокий",
+        TaskPriority.Medium => "Средний",
+        TaskPriority.Low    => "Низкий",
+        _                   => p?.ToString() ?? "—"
+    };
+
+    private string GetStateColor(TaskState? s) => s switch
+    {
+        TaskState.InProgress => "#7c6af7",
+        TaskState.Completed  => "#22c55e",
+        _                    => "#555"
+    };
+
+    private string GetStateLabel(TaskState? s) => s switch
+    {
+        TaskState.New        => "Новая",
+        TaskState.InProgress => "В работе",
+        TaskState.Completed  => "Завершена",
+        _                    => s?.ToString() ?? "—"
+    };
+}

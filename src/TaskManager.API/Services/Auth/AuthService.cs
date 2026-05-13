@@ -76,7 +76,7 @@ public class AuthService(IOptions<JwtOptions> config, AppDbContext context) : IA
             issuer: config.Value.Issuer,
             audience: config.Value.Audience,
             claims: userClaims,
-            expires: DateTime.UtcNow.AddSeconds(2),
+            expires: DateTime.UtcNow.AddHours(12),
             signingCredentials: creds
             );
 

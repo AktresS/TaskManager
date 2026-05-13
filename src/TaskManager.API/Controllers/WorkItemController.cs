@@ -20,10 +20,10 @@ namespace TaskManager.Controllers
             return Ok(task);
         }
 
-        [HttpPost("projects/{projectId}")]
-        public async Task<ActionResult<WorkItemResponse>> CreateProjectTask(int projectId, CreateProjectWorkItemRequest request)
+        [HttpPost("projects/{projectId}/columns/{columnId}")]
+        public async Task<ActionResult<WorkItemResponse>> CreateProjectTask(int projectId, int columnId, CreateProjectWorkItemRequest request)
         {
-            var task = await service.CreateProjectAsync(projectId, request);
+            var task = await service.CreateProjectAsync(projectId, columnId, request);
 
             return Ok(task);
         }

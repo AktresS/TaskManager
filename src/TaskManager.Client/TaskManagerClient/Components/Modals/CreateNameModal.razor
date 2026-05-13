@@ -1,0 +1,57 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icon" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">@Title</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:300px; padding-top:4px;">
+            <MudTextField @bind-Value="_name"
+                          Label="@Label"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          @onkeydown="OnKeyDown" />
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton OnClick="Save"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@string.IsNullOrWhiteSpace(_name)"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Создать
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Title { get; set; } = "Создать";
+    [Parameter] public string Label { get; set; } = "Название";
+    [Parameter] public string Icon  { get; set; } = Icons.Material.Filled.Add;
+    [Parameter] public EventCallback<string> OnSave { get; set; }
+
+    private string _name = string.Empty;
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_name)) return;
+        await OnSave.InvokeAsync(_name.Trim());
+        MudDialog.Close();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Save();
+    }
+}

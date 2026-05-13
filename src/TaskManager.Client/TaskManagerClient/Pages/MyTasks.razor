@@ -1,119 +1,141 @@
 ﻿@page "/my-tasks"
-
 @attribute [Authorize]
 <PageTitle>Мои задачи</PageTitle>
 
-<h2 class="mb-4">📋 Мои задачи</h2>
+<!-- Хедер страницы -->
+<div class="tasks-header">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.5px;">
+            Мои задачи
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#555; margin-top:2px;">
+            @(tasks?.Count ?? 0) задач всего
+        </MudText>
+    </div>
 
-<button class="btn btn-primary mb-3" @onclick="OpenCreateModal">
-    ➕ Создать задачу
-</button>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateModal"
+               Style="border-radius:10px; text-transform:none; font-weight:600; height:40px;">
+        Новая задача
+    </MudButton>
+</div>
 
+<!-- Фильтр по статусу -->
+<div class="filter-row">
+    @foreach (var filter in _filters)
+    {
+        <button class="filter-chip @(_activeFilter == filter.Key ? "active" : "")"
+                @onclick="() => _activeFilter = filter.Key">
+            @filter.Label
+            <span class="chip-count">@GetFilterCount(filter.Key)</span>
+        </button>
+    }
+</div>
+
+<!-- Состояния загрузки / ошибки -->
 @if (isLoading)
 {
-    <div class="text-center my-5">
-        <div class="spinner-border" role="status"></div>
-        <p class="mt-2 text-muted">Загрузка задач...</p>
+    <div class="loading-state">
+        @for (int i = 0; i < 4; i++)
+        {
+            <div class="skeleton-card"></div>
+        }
     </div>
 }
 else if (!string.IsNullOrEmpty(error))
 {
-    <div class="alert alert-danger">
-        Ошибка: @error
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-4">@error</MudAlert>
+}
+else if (FilteredTasks.Count == 0)
+{
+    <div class="empty-state">
+        <MudIcon Icon="@Icons.Material.Outlined.TaskAlt" Style="font-size:48px; color:#2a2a2a;" />
+        <MudText Typo="Typo.body1" Style="color:#444; margin-top:16px;">
+            @(_activeFilter == "all" ? "Задач пока нет" : "Нет задач в этой категории")
+        </MudText>
     </div>
 }
 else
 {
-    @if (tasks == null || tasks.Count == 0)
-    {
-        <div class="alert alert-info">
-            У вас пока нет задач
-        </div>
-    }
-    else
-    {
-        <div class="d-flex flex-column gap-3">
+    <div class="tasks-grid">
+        @foreach (var task in FilteredTasks)
+        {
+            <div class="task-card @GetCardAccent(task.Priority)" @onclick="() => StartEdit(task)">
 
-            @foreach (var task in tasks)
-            {
-                <div class="card shadow-sm border-0 task-card">
-                    <div class="card-body">
+                <!-- Верхняя строка: приоритет + статус -->
+                <div class="task-card-top">
+                    <div class="priority-dot @GetPriorityDot(task.Priority)"></div>
+                    <span class="state-pill @GetStatePill(task.State)">@GetStateLabel(task.State)</span>
+                </div>
 
-                        <!-- Верх -->
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h5 class="mb-1">@task.Title</h5>
-                                <div class="text-muted small">
-                                    @(task.ProjectName ?? "Личная задача")
-                                </div>
-                            </div>
+                <!-- Название -->
+                <div class="task-title">@task.Title</div>
 
-                            <div class="d-flex gap-2">
-                                <span class="badge @GetPriorityClass(task.Priority)">
-                                    @task.Priority
-                                </span>
+                <!-- Описание -->
+                @if (!string.IsNullOrEmpty(task.Description))
+                {
+                    <div class="task-desc">@task.Description</div>
+                }
 
-                                <span class="badge @GetStateClass(task.State)">
-                                    @task.State
-                                </span>
-                            </div>
-                        </div>
+                <!-- Проект -->
+                <div class="task-project">
+                    <MudIcon Icon="@Icons.Material.Filled.FolderOpen"
+                             Style="font-size:13px; color:#444;" />
+                    <span>@(task.ProjectName ?? "Личная задача")</span>
+                </div>
 
-                        <!-- Описание -->
-                        @if (!string.IsNullOrEmpty(task.Description))
+                <!-- Нижняя строка -->
+                <div class="task-card-bottom">
+
+                    <!-- Дедлайн -->
+                    <span class="deadline @GetDeadlineClass(task.DeadLine)">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                 Style="font-size:13px;" />
+                        @task.DeadLine.ToString("dd MMM")
+                    </span>
+
+                    <!-- Исполнители -->
+                    <div class="assignees">
+                        @foreach (var a in task.Assignees.Take(3))
                         {
-                            <p class="mt-2 text-secondary">@task.Description</p>
+                            <div class="avatar-chip" title="@(a.Name ?? "?")">
+                                @((a.Name is { Length: > 0 } ? a.Name[0].ToString() : "?"))
+                            </div>
                         }
+                        @if (task.Assignees.Count > 3)
+                        {
+                            <div class="avatar-chip more">+@(task.Assignees.Count - 3)</div>
+                        }
+                    </div>
 
-                        <!-- Низ -->
-                        <div class="d-flex justify-content-between align-items-center mt-3">
+                    <!-- Кнопки действий -->
+                    <div class="task-actions" @onclick:stopPropagation="true">
+                        @if (task.State != TaskState.Completed)
+                        {
+                            <MudTooltip Text="Завершить">
+                                <MudIconButton Icon="@Icons.Material.Filled.CheckCircleOutline"
+                                            Size="Size.Small"
+                                            Style="color:#444; padding:4px;"
+                                            OnClick="() => MarkDone(task.Id)" />
+                            </MudTooltip>
 
-                            <span class="@GetDeadlineClass(task.DeadLine)">
-                                📅 @task.DeadLine.ToString("dd.MM.yyyy")
-                            </span>
-
-                            <div>
-                                @foreach (var a in task.Assignees.Take(3))
-                                {
-                                    <span class="badge bg-secondary me-1">@a.Name</span>
-                                }
-                                @if (task.Assignees.Count > 3)
-                                {
-                                    <span class="text-muted">
-                                        +@(task.Assignees.Count - 3)
-                                    </span>
-                                }
-                            </div>
-
-                            <div class="d-flex gap-2">
-
-                                <button class="btn btn-sm btn-success"
-                                        @onclick="() => MarkDone(task.Id)">
-                                    ✔
-                                </button>
-
-                                <button class="btn btn-sm btn-outline-primary"
-                                        @onclick="() => StartEdit(task)">
-                                    ✏️
-                                </button>
-
-                                <button class="btn btn-sm btn-outline-danger"
-                                        @onclick="() => Delete(task.Id)">
-                                    🗑
-                                </button>
-
-                            </div>
-
-                        </div>
+                        }
+                        <MudTooltip Text="Удалить">
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                       Size="Size.Small"
+                                       Style="color:#444; padding:4px;"
+                                       OnClick="() => Delete(task.Id)" />
+                        </MudTooltip>
 
                     </div>
-                </div>
-            }
 
-        </div>
-        <EditTaskModal IsOpen="isModalOpen" Model="editModel" OnSave="SaveEdit" OnClose="CloseModal" />
-        <CreateTaskModal IsOpen="isCreateModalOpen" OnClose="CloseCreateModal" OnSave="HandleCreate" />
-    }
+                </div>
+
+            </div>
+        }
+    </div>
 }
 
 @code {
@@ -122,113 +144,158 @@ else
     private string? error;
     private WorkItemResponse? editingTask;
     private UpdateWorkItemRequest editModel = new();
-    private bool isModalOpen = false;
-    private bool isCreateModalOpen = false;
+    private string _activeFilter = "all";
 
-    protected override async Task OnInitializedAsync()
+    private record FilterItem(string Key, string Label);
+    private readonly List<FilterItem> _filters = new()
     {
-        await LoadTasks();
-    }
+        new("all", "Все"),
+        new("new", "Новые"),
+        new("inprogress", "В работе"),
+        new("done", "Завершённые"),
+        new("overdue", "Просроченные"),
+    };
+
+    private List<WorkItemResponse> FilteredTasks => (tasks ?? new()).Where(t => _activeFilter switch
+    {
+        "new"        => t.State == TaskState.New,
+        "inprogress" => t.State == TaskState.InProgress,
+        "done"       => t.State == TaskState.Completed,
+        "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
+        _            => true
+    }).ToList();
+
+    private int GetFilterCount(string key) => (tasks ?? new()).Count(t => key switch
+    {
+        "new"        => t.State == TaskState.New,
+        "inprogress" => t.State == TaskState.InProgress,
+        "done"       => t.State == TaskState.Completed,
+        "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
+        _            => true
+    });
+
+    protected override async Task OnInitializedAsync() => await LoadTasks();
 
     private async Task LoadTasks()
     {
         isLoading = true;
         error = null;
-        
-        try
-        {
-            tasks = await TaskService.GetMyAsync();
-        }
-        catch (Exception ex)
-        {
-            error = ex.Message;
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        try { tasks = await TaskService.GetMyAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { isLoading = false; }
     }
 
-    private string GetPriorityClass(TaskPriority priority) => priority switch
+    // ── Helpers ──
+
+    private string GetCardAccent(TaskPriority p) => p switch
     {
-        TaskPriority.Low => "bg-success",
-        TaskPriority.Medium => "bg-warning text-dark",
-        TaskPriority.High => "bg-danger",
-        _ => "bg-secondary"
+        TaskPriority.High   => "accent-red",
+        TaskPriority.Medium => "accent-yellow",
+        TaskPriority.Low    => "accent-green",
+        _                   => "accent-gray"
     };
 
-    private string GetStateClass(TaskState state) => state switch
+    private string GetPriorityDot(TaskPriority p) => p switch
     {
-        TaskState.New => "bg-secondary",
-        TaskState.InProgress => "bg-primary",
-        TaskState.Completed => "bg-success",
-        _ => "bg-secondary"
+        TaskPriority.High   => "dot-red",
+        TaskPriority.Medium => "dot-yellow",
+        TaskPriority.Low    => "dot-green",
+        _                   => "dot-gray"
     };
+
+    private string GetStatePill(TaskState s) => s switch
+    {
+        TaskState.InProgress => "pill-inprogress",
+        TaskState.Completed  => "pill-done",
+        _                    => "pill-new"
+    };
+
+    private string GetStateLabel(TaskState s) => s switch
+    {
+        TaskState.New        => "Новая",
+        TaskState.InProgress => "В работе",
+        TaskState.Completed  => "Готово",
+        _                    => s.ToString()
+    };
+
     private string GetDeadlineClass(DateTime date)
     {
-        if (date < DateTime.Now)
-            return "text-danger";
-
-        if ((date - DateTime.Now).Days <= 2)
-            return "text-warning";
-
-        return "";
+        if (date < DateTime.Now) return "overdue";
+        if ((date - DateTime.Now).Days <= 2) return "soon";
+        return "normal";
     }
+
+    // ── Действия ──
+
     private async Task MarkDone(int id)
     {
-        await TaskService.UpdateAsync(id, new UpdateWorkItemRequest
-        {
-            State = TaskState.Completed
-        });
-
+        await TaskService.UpdateAsync(id, new UpdateWorkItemRequest { State = TaskState.Completed });
         await LoadTasks();
     }
+
     private async Task Delete(int id)
     {
         await TaskService.DeleteAsync(id);
         await LoadTasks();
     }
-    private void StartEdit(WorkItemResponse task)
+    private async Task OpenCreateModal()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var parameters = new DialogParameters<CreateTaskModal>
+        {
+            { x => x.OnSave, EventCallback.Factory.Create<CreatePersonalWorkItemRequest>(this, HandleCreate) }
+        };
+
+        await DialogService.ShowAsync<CreateTaskModal>("", parameters, options);
+    }
+
+    private async Task StartEdit(WorkItemResponse task)
     {
         editingTask = task;
 
         editModel = new UpdateWorkItemRequest
         {
-            Title = task.Title,
+            Title       = task.Title,
             Description = task.Description,
-            Priority = task.Priority,
-            State = task.State,
-            DeadLine = task.DeadLine
+            Priority    = task.Priority,
+            State       = task.State,
+            DeadLine    = task.DeadLine
         };
 
-        isModalOpen = true;
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var parameters = new DialogParameters<EditTaskModal>
+        {
+            { x => x.Model,   editModel },
+            { x => x.OnSave,  EventCallback.Factory.Create<UpdateWorkItemRequest>(this, SaveEdit) }
+        };
+
+        await DialogService.ShowAsync<EditTaskModal>("", parameters, options);
     }
+
     private async Task SaveEdit(UpdateWorkItemRequest model)
     {
         if (editingTask == null) return;
         await TaskService.UpdateAsync(editingTask.Id, model);
-        isModalOpen = false;
         await LoadTasks();
-    }
-    private void CloseModal()
-    {
-        isModalOpen = false;
-    }
-    private void OpenCreateModal()
-    {
-        isCreateModalOpen = true;
-    }
-
-    private void CloseCreateModal()
-    {
-        isCreateModalOpen = false;
     }
 
     private async Task HandleCreate(CreatePersonalWorkItemRequest model)
     {
         await TaskService.CreatePersonalAsync(model);
-
-        isCreateModalOpen = false;
         await LoadTasks();
     }
 }

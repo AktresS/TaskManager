@@ -1,34 +1,105 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
+
+<MudThemeProvider Theme="AppTheme.Dark" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+
+    <!-- Хедер -->
+    <MudAppBar Elevation="0" Style="background:#1a1a1a; border-bottom:1px solid #2a2a2a;">
+
+        <!-- Кнопка открытия сайдбара на мобилке -->
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="ToggleDrawer" />
+
+        <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.3px;">
+            TaskManager
+        </MudText>
+
+        <MudSpacer />
+
+        <!-- Правая часть хедера -->
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.body2" Style="color:#888; margin-right:16px;">
+                    @context.User.Identity!.Name
+                </MudText>
+                <MudTooltip Text="Выйти">
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                                Color="Color.Inherit"
+                                Style="color:#888;"
+                                OnClick="LogoutClicked" />
+                </MudTooltip>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="/identity/account/login"
+                           Variant="Variant.Text"
+                           Style="color:#888;">Login</MudButton>
+                <MudButton Href="/identity/account/register"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Style="border-radius:8px;">Register</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </MudAppBar>
+
+    <!-- Сайдбар -->
+    <MudDrawer @bind-Open="_drawerOpen"
+               Variant="DrawerVariant.Responsive"
+               Breakpoint="Breakpoint.Md"
+               Elevation="0"
+               Style="background:#161616; border-right:1px solid #2a2a2a;">
         <NavMenu />
+    </MudDrawer>
 
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <AuthorizeView>
-                <Authorized>
-                    <a class="btn btn-none text-danger" @onclick="LogoutClicked">Logout</a>
-                </Authorized>
-                <NotAuthorized>
-                    <a href="identity/account/login" class="btn btn-none">Login</a>
-                    <a href="identity/account/register" class="btn btn-none">Register</a>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
-
-        <article class="content px-4">
+    <!-- Контент -->
+    <MudMainContent Style="background:#141414; min-height:100vh;">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-6">
             @Body
-        </article>
-    </main>
-</div>
+        </MudContainer>
+    </MudMainContent>
 
-@code{
-    async Task LogoutClicked(){
-        var logoutModel = new UserSession();
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    async Task LogoutClicked()
+    {
         var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
-        await customAuthStateProvider.UpdateAuthenticationState(logoutModel);
-        NavManager.NavigateTo("/", forceLoad: false);
+        await customAuthStateProvider.UpdateAuthenticationState(new UserSession());
+        NavManager.NavigateTo("/identity/account/login");
     }
+
+    private MudTheme _darkTheme = new()
+    {
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#7c6af7",
+            PrimaryContrastText = "#ffffff",
+            Surface = "#1e1e1e",
+            Background = "#141414",
+            AppbarBackground = "#1a1a1a",
+            DrawerBackground = "#161616",
+            TextPrimary = "#eaeaea",
+            TextSecondary = "#888888",
+            ActionDefault = "#eaeaea",
+            LinesDefault = "#333333",
+            Divider = "#2a2a2a",
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Segoe UI", "sans-serif" }
+            }
+        }
+    };
 }

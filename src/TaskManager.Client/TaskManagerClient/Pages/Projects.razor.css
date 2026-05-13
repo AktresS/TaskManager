@@ -1,0 +1,141 @@
+    .projects-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+    }
+
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    /* ── Карточка ── */
+    .project-card {
+        background: #1a1a1a;
+        border: 1px solid #242424;
+        border-radius: 14px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .project-card:hover {
+        transform: translateY(-3px);
+        border-color: #333;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    /* Цветная шапка */
+    .project-card-header {
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .project-initials {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: rgba(255,255,255,0.9);
+        letter-spacing: 1px;
+        backdrop-filter: blur(4px);
+    }
+
+    /* Тело */
+    .project-card-body {
+        padding: 16px 16px 8px;
+        flex: 1;
+    }
+
+    .project-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #e0e0e0;
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .project-desc {
+        font-size: 13px;
+        color: #555;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .project-meta {
+        display: flex;
+        gap: 12px;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #444;
+    }
+
+    /* Футер */
+    .project-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 8px 8px 12px;
+        border-top: 1px solid #1f1f1f;
+        margin-top: auto;
+    }
+
+    /* Скелетон */
+    .skeleton-card {
+        height: 220px;
+        background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+        border-radius: 14px;
+        border: 1px solid #242424;
+    }
+
+    @keyframes shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Пустое состояние */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 100px 0;
+        gap: 4px;
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+    }

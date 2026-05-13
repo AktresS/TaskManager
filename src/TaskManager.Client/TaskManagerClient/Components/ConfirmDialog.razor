@@ -1,0 +1,41 @@
+﻿@namespace TaskManagerClient.Components
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Style="color:#ef4444;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">@Title</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudText Typo="Typo.body2" Style="color:#888; line-height:1.6;">@Message</MudText>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton OnClick="Confirm"
+                   Variant="Variant.Filled"
+                   Style="background:#ef4444; color:#fff; border-radius:8px; text-transform:none; font-weight:600;">
+            Удалить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Title   { get; set; } = "Подтверждение";
+    [Parameter] public string Message { get; set; } = "Вы уверены?";
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private async Task Confirm()
+    {
+        await OnConfirm.InvokeAsync();
+        MudDialog.Close();
+    }
+}
+

@@ -1,46 +1,170 @@
 ﻿@page "/identity/account/login"
 @layout AuthenticationLayout
-<div class="auth-wrapper">
-    <div class="auth-card">
 
-        <h2>Welcome back</h2>
-        <p class="auth-subtitle">Sign in to continue</p>
+<MudPaper Class="auth-card" Elevation="0">
 
-        <EditForm Model="User" OnValidSubmit="HandleLogin">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
+    <MudText Typo="Typo.h5" Class="mb-1" Style="font-weight:700; color:#eaeaea;">
+        Welcome back
+    </MudText>
+    <MudText Typo="Typo.body2" Style="color:#888; margin-bottom:32px;">
+        Sign in to continue
+    </MudText>
 
-            <div class="form-field">
-                <label>Email</label>
-                <InputText @bind-Value="User.Email" class="form-control" />
-            </div>
+    <EditForm Model="User" OnValidSubmit="HandleLogin">
+        <DataAnnotationsValidator />
 
-            <div class="form-field">
-                <label>Password</label>
-                <InputText type="password" @bind-Value="User.Password" class="form-control" />
-            </div>
+        <MudTextField @bind-Value="User.Email"
+                      Label="Email"
+                      InputType="InputType.Email"
+                      Variant="Variant.Outlined"
+                      Class="mb-4"
+                      FullWidth="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Email"
+                      Style="color:#eaeaea;" />
 
-            <button class="btn-auth" type="submit">Login</button>
-        </EditForm>
+        <MudTextField @bind-Value="User.Password"
+                      Label="Password"
+                      InputType="@_passwordInput"
+                      Variant="Variant.Outlined"
+                      Class="mb-2"
+                      FullWidth="true"
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@_passwordIcon"
+                      OnAdornmentClick="TogglePassword" />
 
-        <p class="auth-footer">
-            Don't have an account?
-            <a href="/identity/account/register">Register</a>
-        </p>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4" Variant="Variant.Filled">
+                @_error
+            </MudAlert>
+        }
 
-    </div>
-</div>
+        <MudButton ButtonType="ButtonType.Submit"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   FullWidth="true"
+                   Size="Size.Large"
+                   Disabled="_loading"
+                   Class="mt-4 auth-btn">
+            @if (_loading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Signing in...</span>
+            }
+            else
+            {
+                <span>Sign in</span>
+            }
+        </MudButton>
+
+    </EditForm>
+
+    <MudDivider Class="my-5" Style="border-color:#2e2e2e;" />
+
+    <MudText Typo="Typo.body2" Align="Align.Center" Style="color:#888;">
+        Don't have an account?
+        <MudLink Href="/identity/account/register" Style="color:#7c6af7; font-weight:600;">
+            Register
+        </MudLink>
+    </MudText>
+
+</MudPaper>
+
+<style>
+    .auth-card {
+        width: 100%;
+        max-width: 420px;
+        padding: 48px 40px;
+        background: #1e1e1e;
+        border: 1px solid #2a2a2a;
+        border-radius: 16px;
+    }
+
+    .auth-btn {
+        height: 48px;
+        border-radius: 10px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        text-transform: none !important;
+        font-size: 15px;
+    }
+
+    /* Граница поля */
+    .mud-input-outlined .mud-input-outlined-border {
+        border-color: #333 !important;
+    }
+    .mud-input-outlined:hover .mud-input-outlined-border {
+        border-color: #7c6af7 !important;
+    }
+
+    /* Цвет текста и label */
+    .mud-input-label { color: #666 !important; }
+    .mud-input-root { color: #eaeaea !important; }
+
+    /* Отступ внутри поля — чтобы текст не прилипал к иконке */
+    .mud-input-adornment-start + .mud-input {
+        padding-left: 6px !important;
+    }
+
+    /* ===== АВТОФИЛЛ ФИКС ===== */
+    /* Убираем синий фон браузера, подставляем свой тёмный */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 100px #2a2a2a inset !important;
+        -webkit-text-fill-color: #eaeaea !important;
+        caret-color: #eaeaea;
+        transition: background-color 9999s ease-in-out 0s; /* трюк — откладываем смену фона на вечность */
+    }
+
+    /* Иконки — делаем их чуть ярче когда поле в автофилле */
+    .mud-input-outlined:has(input:-webkit-autofill) .mud-input-adornment {
+        color: #7c6af7 !important;
+    }
+</style>
 
 @code {
     Login User = new();
+    bool _loading;
+    string? _error;
+    InputType _passwordInput = InputType.Password;
+    string _passwordIcon = Icons.Material.Filled.VisibilityOff;
+
+    void TogglePassword()
+    {
+        if (_passwordInput == InputType.Password)
+        {
+            _passwordInput = InputType.Text;
+            _passwordIcon = Icons.Material.Filled.Visibility;
+        }
+        else
+        {
+            _passwordInput = InputType.Password;
+            _passwordIcon = Icons.Material.Filled.VisibilityOff;
+        }
+    }
+
     async Task HandleLogin()
     {
+        _loading = true;
+        _error = null;
+
         var result = await accountService.SignInAsync(User);
         if (result.Flag)
         {
             var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
-            await customAuthStateProvider.UpdateAuthenticationState(new UserSession() { Token = result.Token, RefreshToken = result.RefreshToken });
-            NavManager.NavigateTo("/my-tasks", forceLoad: true);
+            await customAuthStateProvider.UpdateAuthenticationState(
+                new UserSession() { Token = result.Token, RefreshToken = result.RefreshToken });
+
+            NavManager.NavigateTo("/my-tasks"); // убрал forceLoad: true — лишнее в WASM
         }
+        else
+        {
+            _error = result.Message;
+        }
+
+        _loading = false;
     }
 }

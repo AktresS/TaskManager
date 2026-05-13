@@ -30,12 +30,12 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
         return await GetByIdAsync(item.WorkItemId);
     }
 
-    public async Task<WorkItemResponse> CreateProjectAsync(int projectId, CreateProjectWorkItemRequest request)
+    public async Task<WorkItemResponse> CreateProjectAsync(int projectId, int columnId, CreateProjectWorkItemRequest request)
     {
         await auth.EnsureMember(projectId);
 
         var column = await context.BoardColumns
-            .FirstOrDefaultAsync(c => c.Id == request.ColumnId && c.Board.ProjectId == projectId);
+            .FirstOrDefaultAsync(c => c.Id == columnId && c.Board.ProjectId == projectId);
     
         if (column == null)
             throw new Exception("Invalid column for this project");
@@ -74,7 +74,7 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             DeadLine = DateTime.SpecifyKind(request.DeadLine, DateTimeKind.Utc),
             CreatedById = currentUser.UserId,
             ProjectId = projectId,
-            ColumnId = request.ColumnId
+            ColumnId = columnId
         };
 
         context.WorkItems.Add(item);
@@ -244,7 +244,6 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
         if (column == null)
             throw new Exception("Column not found");
 
-        // 🔐 проверка доступа через проект
         await auth.EnsureMember(column.Board.ProjectId);
 
         item.ColumnId = request.ColumnId;

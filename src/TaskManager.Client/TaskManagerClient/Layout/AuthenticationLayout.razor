@@ -1,14 +1,66 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="landing-wrapper">
+<MudThemeProvider Theme="AppTheme.Dark" IsDarkMode="true" />
+
+<div class="auth-shell">
     @Body
 </div>
 
 <style>
-    body {
+    html, body {
         margin: 0;
-        background: radial-gradient(circle at top, #2a2a2a, #1a1a1a);
-        color: #eaeaea;
+        height: 100%;
+        background: radial-gradient(circle at 30% 20%, #2e2e2e, #141414);
         font-family: 'Segoe UI', sans-serif;
     }
+
+    .auth-shell {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
+
+@code {
+    private MudTheme _darkTheme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#7c6af7",          // фиолетовый акцент
+            PrimaryContrastText = "#ffffff",
+            Surface = "#1e1e1e",
+            Background = "#141414",
+            AppbarBackground = "#1e1e1e",
+            DrawerBackground = "#1e1e1e",
+            TextPrimary = "#eaeaea",
+            TextSecondary = "#888888",
+            ActionDefault = "#eaeaea",
+            LinesDefault = "#333333",
+            TableLines = "#333333",
+            Divider = "#2e2e2e",
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#7c6af7",
+            PrimaryContrastText = "#ffffff",
+            Surface = "#1e1e1e",
+            Background = "#141414",
+            AppbarBackground = "#1e1e1e",
+            DrawerBackground = "#1e1e1e",
+            TextPrimary = "#eaeaea",
+            TextSecondary = "#888888",
+            ActionDefault = "#eaeaea",
+            LinesDefault = "#333333",
+            TableLines = "#333333",
+            Divider = "#2e2e2e",
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Segoe UI", "sans-serif" }
+            }
+        }
+    };
+}

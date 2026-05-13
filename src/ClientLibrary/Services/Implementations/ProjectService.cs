@@ -38,7 +38,7 @@ public class ProjectService(GetHttpClient getHttpClient) : IProjectService
     public async Task<ProjectResponse> UpdateAsync(int id, UpdateProjectRequest request)
     {
         var client = await getHttpClient.GetPrivateHttpClient();
-        var result = await client.PatchAsJsonAsync($"{BaseUrl}/{id}", request);
+        var result = await client.PutAsJsonAsync($"{BaseUrl}/{id}", request);
 
         var content = await result.Content.ReadAsStringAsync();
         if (!result.IsSuccessStatusCode)

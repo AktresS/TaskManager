@@ -1,0 +1,112 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.AddTask" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Новая задача</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:420px;">
+            <EditForm Model="model" OnValidSubmit="Save" id="create-task-form">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="model.Title"
+                            Label="Название"
+                            Variant="Variant.Outlined"
+                            Required="true"
+                            RequiredError="Название обязательно"
+                            Class="mb-4" />
+
+                <MudTextField @bind-Value="model.Description"
+                            Label="Описание"
+                            Variant="Variant.Outlined"
+                            Lines="3"
+                            Class="mb-4" />
+
+                <MudSelect T="TaskPriority"
+                        @bind-Value="model.Priority"
+                        Label="Приоритет"
+                        Variant="Variant.Outlined"
+                        Class="mb-4"
+                        AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var p in Enum.GetValues<TaskPriority>())
+                    {
+                        <MudSelectItem Value="p">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:8px; height:8px; border-radius:50%; background:@GetPriorityColor(p);"></div>
+                                @GetPriorityLabel(p)
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudDatePicker @bind-Date="_deadline"
+                            Label="Дедлайн"
+                            Variant="Variant.Outlined"
+                            Class="mb-2"
+                            MinDate="DateTime.Today"
+                            DateFormat="dd.MM.yyyy" />
+
+            </EditForm>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton ButtonType="ButtonType.Submit"
+                   form="create-task-form"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Создать задачу
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public EventCallback<CreatePersonalWorkItemRequest> OnSave { get; set; }
+
+    private CreatePersonalWorkItemRequest model = new()
+    {
+        DeadLine = DateTime.Today.AddDays(1)
+    };
+
+    private DateTime? _deadline
+    {
+        get => model.DeadLine;
+        set => model.DeadLine = value ?? DateTime.Today.AddDays(1);
+    }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync(model);
+        model = new CreatePersonalWorkItemRequest { DeadLine = DateTime.Today.AddDays(1) };
+        MudDialog.Close();
+    }
+
+    private void Close() => MudDialog.Cancel();
+
+    private string GetPriorityColor(TaskPriority p) => p switch
+    {
+        TaskPriority.High   => "#ef4444",
+        TaskPriority.Medium => "#f59e0b",
+        TaskPriority.Low    => "#22c55e",
+        _                   => "#555"
+    };
+
+    private string GetPriorityLabel(TaskPriority p) => p switch
+    {
+        TaskPriority.High   => "Высокий",
+        TaskPriority.Medium => "Средний",
+        TaskPriority.Low    => "Низкий",
+        _                   => p.ToString()
+    };
+}

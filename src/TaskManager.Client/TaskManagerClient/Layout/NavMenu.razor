@@ -1,43 +1,51 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">TaskManagerClient
-            <AuthorizeView>
-                <Authorized>@context.User.Identity!.Name</Authorized>
-            </AuthorizeView>
-        </a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿<MudDrawerHeader Style="padding: 20px 16px 12px;">
+    <MudText Typo="Typo.subtitle2" Style="color:#555; font-weight:600; letter-spacing:1px; text-transform:uppercase; font-size:11px;">
+        Navigation
+    </MudText>
+</MudDrawerHeader>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/my-tasks" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Мои задачи
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<MudNavMenu Style="padding: 0 8px;">
 
-@code {
-    private bool collapseNavMenu = true;
+    <MudNavLink Href="/my-tasks"
+                Match="NavLinkMatch.All"
+                Icon="@Icons.Material.Filled.TaskAlt"
+                Style="border-radius:10px; margin-bottom:2px;">
+        Мои задачи
+    </MudNavLink>
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    <MudNavLink Href="/projects"
+                Match="NavLinkMatch.Prefix"
+                Icon="@Icons.Material.Filled.FolderOpen"
+                Style="border-radius:10px; margin-bottom:2px;">
+        Проекты
+    </MudNavLink>
 
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
+</MudNavMenu>
+
+<style>
+    /* Активная ссылка */
+    .mud-nav-link.active {
+        background: rgba(124, 106, 247, 0.15) !important;
+        color: #7c6af7 !important;
     }
-}
+    .mud-nav-link.active .mud-nav-link-icon {
+        color: #7c6af7 !important;
+    }
+
+    /* Обычная ссылка */
+    .mud-nav-link {
+        color: #888 !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+    }
+    .mud-nav-link:hover {
+        background: rgba(255,255,255,0.05) !important;
+        color: #eaeaea !important;
+    }
+    .mud-nav-link:hover .mud-nav-link-icon {
+        color: #eaeaea !important;
+    }
+    .mud-nav-link-icon {
+        color: #555 !important;
+    }
+</style>

@@ -1,0 +1,61 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.CreateNewFolder" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Новый проект</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:380px;">
+            <EditForm Model="model" OnValidSubmit="Save" id="create-project-form">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="model.Name"
+                              Label="Название проекта"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Название обязательно"
+                              Class="mb-4"
+                              Counter="100"
+                              MaxLength="100" />
+
+                <MudTextField @bind-Value="model.Description"
+                              Label="Описание"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              Class="mb-2" />
+            </EditForm>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton ButtonType="ButtonType.Submit"
+                   form="create-project-form"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Создать
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public EventCallback<CreateProjectRequest> OnSave { get; set; }
+
+    private CreateProjectRequest model = new();
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync(model);
+        MudDialog.Close();
+    }
+}

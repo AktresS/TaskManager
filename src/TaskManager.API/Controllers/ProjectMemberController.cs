@@ -7,7 +7,7 @@ using TaskManager.Services.ProjectMembers;
 namespace TaskManager.Controllers
 {
     [Authorize]
-    [Route("projects/{projectId}/members")]
+    [Route("api/projects/{projectId}/members")]
     [ApiController]
     public class ProjectMemberController(IProjectMemberService service) : ControllerBase
     {

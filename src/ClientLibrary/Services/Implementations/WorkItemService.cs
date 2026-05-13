@@ -36,12 +36,24 @@ public class WorkItemService(GetHttpClient getHttpClient) : IWorkItemService
             ?? throw new Exception("Failed to parse response");
     }
 
-    public async Task<WorkItemResponse> CreateProjectAsync(int projectId, CreateProjectWorkItemRequest request)
+    public async Task<WorkItemResponse> CreateProjectAsync(int projectId, int columnId, CreateProjectWorkItemRequest request)
     {
+        // return await result.Content.ReadFromJsonAsync<WorkItemResponse>()
+        //     ?? throw new Exception("Failed to parse response");
         var client = await getHttpClient.GetPrivateHttpClient();
-        var result = await client.PostAsJsonAsync($"{BaseUrl}/projects/{projectId}", request);
 
-        return await result.Content.ReadFromJsonAsync<WorkItemResponse>()
+        var result = await client.PostAsJsonAsync(
+            $"{BaseUrl}/projects/{projectId}/columns/{columnId}", request);
+
+        var text = await result.Content.ReadAsStringAsync();
+
+        Console.WriteLine("STATUS: " + result.StatusCode);
+        Console.WriteLine("RESPONSE: " + text);
+
+        if (!result.IsSuccessStatusCode)
+            throw new Exception($"Server error: {text}");
+
+        return JsonSerializer.Deserialize<WorkItemResponse>(text)
             ?? throw new Exception("Failed to parse response");
     }
 
@@ -58,6 +70,18 @@ public class WorkItemService(GetHttpClient getHttpClient) : IWorkItemService
 
         return JsonSerializer.Deserialize<WorkItemResponse>(content,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+    }
+
+    public async Task MoveAsync(int taskId, int columnId)
+    {
+        var client = await getHttpClient.GetPrivateHttpClient();
+
+        await client.PatchAsJsonAsync(
+            $"{BaseUrl}/{taskId}/move",
+            new MoveWorkItemRequest
+            {
+                ColumnId = columnId
+            });
     }
 
     public async Task DeleteAsync(int workId)

@@ -52,10 +52,4 @@ public class UserAccountService(GetHttpClient getHttpClient) : IUserAccountServi
         return await result.Content.ReadFromJsonAsync<LoginResponse>() ?? new LoginResponse(false, "Failed to parse server response");
     }
 
-    public async Task<WeatherForecast[]> GetWeatherForecastsAsync()
-    {
-        var httpClient = await getHttpClient.GetPrivateHttpClient();
-        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("api/weatherforecast");
-        return result!;
-    }
 }

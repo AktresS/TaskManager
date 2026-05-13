@@ -1,0 +1,228 @@
+﻿@page "/projects"
+@attribute [Authorize]
+
+<PageTitle>Проекты</PageTitle>
+
+<!-- Хедер -->
+<div class="projects-header">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.5px;">
+            Проекты
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#555; margin-top:2px;">
+            @(projects?.Count ?? 0) проектов
+        </MudText>
+    </div>
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateModal"
+               Style="border-radius:10px; text-transform:none; font-weight:600; height:40px;">
+        Новый проект
+    </MudButton>
+</div>
+
+<!-- Загрузка -->
+@if (isLoading)
+{
+    <div class="projects-grid">
+        @for (int i = 0; i < 6; i++)
+        {
+            <div class="skeleton-card"></div>
+        }
+    </div>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-4">@error</MudAlert>
+}
+else if (projects is null || projects.Count == 0)
+{
+    <!-- Пустое состояние -->
+    <div class="empty-state">
+        <div class="empty-icon">
+            <MudIcon Icon="@Icons.Material.Outlined.FolderOpen"
+                     Style="font-size:40px; color:#333;" />
+        </div>
+        <MudText Typo="Typo.h6" Style="color:#444; font-weight:600;">
+            Проектов пока нет
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#333; margin-top:4px;">
+            Создайте первый проект чтобы начать
+        </MudText>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateModal"
+                   Style="margin-top:20px; border-radius:10px; text-transform:none; border-color:#2a2a2a; color:#666;">
+            Создать проект
+        </MudButton>
+    </div>
+}
+else
+{
+    <div class="projects-grid">
+        @foreach (var project in projects)
+        {
+            <div class="project-card" @onclick="() => GoToBoard(project.ProjectId)">
+
+                <!-- Верх карточки — цветная шапка -->
+                <div class="project-card-header" style="background:@GetProjectColor(project.ProjectId);">
+                    <div class="project-initials">@GetInitials(project.Name)</div>
+                </div>
+
+                <!-- Тело карточки -->
+                <div class="project-card-body">
+                    <div class="project-name">@project.Name</div>
+
+                    @if (!string.IsNullOrEmpty(project.Description))
+                    {
+                        <div class="project-desc">@project.Description</div>
+                    }
+
+                    <div class="project-meta">
+                        <span class="meta-item">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday"
+                                     Style="font-size:12px;" />
+                            @project.CreatedAt.ToString("dd MMM yyyy")
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Нижняя панель с кнопками -->
+                <div class="project-card-footer" @onclick:stopPropagation="true">
+                    <MudButton Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.Dashboard"
+                               Size="Size.Small"
+                               OnClick="() => GoToBoard(project.ProjectId)"
+                               Style="text-transform:none; color:#555; font-size:12px; padding:4px 8px;">
+                        Открыть
+                    </MudButton>
+
+                    <div style="display:flex; gap:4px;">
+                        <MudTooltip Text="Редактировать">
+                            <MudIconButton Icon="@Icons.Material.Filled.EditNote"
+                                           Size="Size.Small"
+                                           Style="color:#444;"
+                                           OnClick="() => OpenEditModal(project)" />
+                        </MudTooltip>
+                        <MudTooltip Text="Удалить">
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Size="Size.Small"
+                                           Style="color:#444;"
+                                           OnClick="() => ConfirmDelete(project)" />
+                        </MudTooltip>
+                    </div>
+                </div>
+
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+    private List<ProjectResponse>? projects;
+    private bool isLoading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await LoadProjects();
+
+    private async Task LoadProjects()
+    {
+        isLoading = true;
+        error = null;
+        try { projects = await ProjectService.GetUserProjectsAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { isLoading = false; }
+    }
+
+    private void GoToBoard(int id) => NavManager.NavigateTo($"/projects/{id}/board");
+
+    // ── Создание ──
+    private async Task OpenCreateModal()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var parameters = new DialogParameters<CreateProjectModal>
+        {
+            { x => x.OnSave, EventCallback.Factory.Create<CreateProjectRequest>(this, HandleCreate) }
+        };
+
+        await DialogService.ShowAsync<CreateProjectModal>("", parameters, options);
+    }
+
+    private async Task HandleCreate(CreateProjectRequest request)
+    {
+        await ProjectService.CreateAsync(request);
+        await LoadProjects();
+    }
+
+    // ── Редактирование ──
+    private async Task OpenEditModal(ProjectResponse project)
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var parameters = new DialogParameters<EditProjectModal>
+        {
+            { x => x.Project, project },
+            { x => x.OnSave,  EventCallback.Factory.Create<(int, UpdateProjectRequest)>(this, HandleEdit) }
+        };
+
+        await DialogService.ShowAsync<EditProjectModal>("", parameters, options);
+    }
+
+    private async Task HandleEdit((int id, UpdateProjectRequest request) args)
+    {
+        await ProjectService.UpdateAsync(args.id, args.request);
+        await LoadProjects();
+    }
+
+    // ── Удаление ──
+    private async Task ConfirmDelete(ProjectResponse project)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Title,   "Удалить проект?" },
+            { x => x.Message, $"Проект «{project.Name}» и все его задачи будут удалены. Это действие нельзя отменить." },
+            { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
+                {
+                    await ProjectService.DeleteAsync(project.ProjectId);
+                    await LoadProjects();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("", parameters, options);
+    }
+
+    // ── Helpers ──
+    private static readonly string[] _colors =
+    {
+        "#5b4fcf", "#2563eb", "#0891b2", "#059669",
+        "#d97706", "#dc2626", "#7c3aed", "#db2777"
+    };
+
+    private string GetProjectColor(int id) => _colors[id % _colors.Length];
+
+    private string GetInitials(string name)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length >= 2
+            ? $"{words[0][0]}{words[1][0]}".ToUpper()
+            : name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+}

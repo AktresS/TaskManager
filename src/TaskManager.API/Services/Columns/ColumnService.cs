@@ -20,6 +20,7 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
         await projectAuthService.EnsureMember(board.ProjectId);
 
         var columns = await context.BoardColumns
+            .Include(c => c.WorkItems)
             .Where(x => x.BoardId == boardId)
             .OrderBy(x => x.Order)
             .ToListAsync();
@@ -28,7 +29,16 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
         {
             Id = x.Id,
             Name = x.Name,
-            Order = x.Order
+            Order = x.Order,
+            WorkItems = x.WorkItems.Select(w => new WorkItemResponse
+            {
+                Id = w.WorkItemId,
+                Title = w.Title,
+                Description = w.Description,
+                Priority = w.Priority,
+                State = w.State,
+                DeadLine = w.DeadLine
+            }).ToList()
         }).ToList();
     }
 

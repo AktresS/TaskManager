@@ -1,0 +1,70 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.EditNote" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Редактировать проект</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:380px;">
+            <EditForm Model="model" OnValidSubmit="Save" id="edit-project-form">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="model.Name"
+                              Label="Название проекта"
+                              Variant="Variant.Outlined"
+                              Class="mb-4"
+                              Counter="100"
+                              MaxLength="100" />
+
+                <MudTextField @bind-Value="model.Description"
+                              Label="Описание"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              Class="mb-2" />
+            </EditForm>
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton ButtonType="ButtonType.Submit"
+                   form="edit-project-form"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Сохранить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ProjectResponse Project { get; set; } = default!;
+    [Parameter] public EventCallback<(int, UpdateProjectRequest)> OnSave { get; set; }
+
+    private UpdateProjectRequest model = new();
+
+    protected override void OnParametersSet()
+    {
+        // заполняем форму текущими данными проекта
+        model = new UpdateProjectRequest
+        {
+            Name        = Project.Name,
+            Description = Project.Description
+        };
+    }
+
+    private async Task Save()
+    {
+        await OnSave.InvokeAsync((Project.ProjectId, model));
+        MudDialog.Close();
+    }
+}

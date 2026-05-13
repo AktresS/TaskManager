@@ -10,6 +10,7 @@
 @using TaskManagerClient.Layout
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
+@using MudBlazor
 
 @using BaseLibrary.DTOs
 @using ClientLibrary.Helpers
@@ -17,7 +18,22 @@
 @using BaseLibrary.Responses
 @using BaseLibrary.DTOs.TaskDtos
 @using BaseLibrary.Enums
+@using TaskManagerClient.Components.Modals
+@using TaskManagerClient.Components
+@using BaseLibrary.DTOs.BoardDtos
+@using BaseLibrary.DTOs.ColumnDtos
+@using BaseLibrary.DTOs.ProjectDtos
+@using BaseLibrary.DTOs.AssigneeDtos
+@using ClientLibrary.Services.Implementations
+
+@inject IBoardService BoardService
+@inject IColumnService ColumnService
+@inject IProjectMemberService ProjectMemberService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IUserAccountService accountService
 @inject NavigationManager NavManager
 @inject IWorkItemService TaskService
+@inject IDialogService DialogService
+@inject IProjectService ProjectService
+@inject IProjectMemberService MemberService
+@inject IWorkItemAssigneeService AssigneeService

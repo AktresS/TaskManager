@@ -1,0 +1,341 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.EditNote" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Редактировать задачу</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:420px;">
+            <EditForm Model="_model" OnValidSubmit="Save" id="edit-project-task-form">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="_model.Title"
+                              Label="Название"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              RequiredError="Название обязательно"
+                              Class="mb-4" />
+
+                <MudTextField @bind-Value="_model.Description"
+                              Label="Описание"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              Class="mb-4" />
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;" class="mb-4">
+
+                    <MudSelect T="TaskPriority?"
+                               @bind-Value="_model.Priority"
+                               Label="Приоритет"
+                               Variant="Variant.Outlined"
+                               AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var p in Enum.GetValues<TaskPriority>())
+                        {
+                            <MudSelectItem T="TaskPriority?" Value="p">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:8px;height:8px;border-radius:50%;background:@GetPriorityColor(p);"></div>
+                                    @GetPriorityLabel(p)
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="TaskState?"
+                               @bind-Value="_model.State"
+                               Label="Статус"
+                               Variant="Variant.Outlined"
+                               AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var s in Enum.GetValues<TaskState>())
+                        {
+                            <MudSelectItem T="TaskState?" Value="s">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:8px;height:8px;border-radius:50%;background:@GetStateColor(s);"></div>
+                                    @GetStateLabel(s)
+                                </div>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                </div>
+
+                <MudDatePicker @bind-Date="_deadline"
+                               Label="Дедлайн"
+                               Variant="Variant.Outlined"
+                               MinDate="DateTime.Today"
+                               DateFormat="dd.MM.yyyy"
+                               Class="mb-4" />
+
+            </EditForm>
+
+            <!-- Исполнители — вынесены за EditForm чтобы не мешать сабмиту -->
+            <MudText Typo="Typo.caption" Style="color:#555; margin-bottom:8px; display:block;">
+                Исполнители
+            </MudText>
+
+            <!-- Текущие исполнители -->
+            @if (_currentAssignees.Any())
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                    @foreach (var assignee in _currentAssignees)
+                    {
+                        <MudChip T="UserShortDto"
+                                 Value="assignee"
+                                 OnClose="() => RemoveAssignee(assignee)"
+                                 Closeable="true"
+                                 Color="Color.Primary"
+                                 Variant="Variant.Outlined"
+                                 Size="Size.Small">
+                            @assignee.Name
+                        </MudChip>
+                    }
+                </div>
+            }
+
+            <!-- Добавить исполнителя -->
+            <div style="display:flex; gap:8px; align-items:flex-start;">
+                <div style="flex:1;">
+                    <MudAutocomplete T="ProjectMemberResponse"
+                                     @bind-Value="_selectedMemberToAdd"
+                                     Label="Добавить исполнителя"
+                                     Variant="Variant.Outlined"
+                                     SearchFunc="SearchMembers"
+                                     ToStringFunc="m => m?.UserName ?? string.Empty"
+                                     Clearable="true"
+                                     AdornmentIcon="@Icons.Material.Filled.PersonSearch"
+                                     Placeholder="Имя участника..."
+                                     CoerceText="false">
+                        <ItemTemplate Context="member">
+                            <div style="display:flex; align-items:center; gap:10px; padding:4px 0;">
+                                <div style="width:28px;height:28px;border-radius:50%;background:#2a2a2a;
+                                            display:flex;align-items:center;justify-content:center;
+                                            font-size:12px;font-weight:600;color:#888;flex-shrink:0;">
+                                    @(member.UserName is { Length: > 0 } ? member.UserName[0].ToString().ToUpper() : "?")
+                                </div>
+                                <div>
+                                    <div style="font-size:13px;color:#ddd;font-weight:500;">@member.UserName</div>
+                                    <div style="font-size:11px;color:#555;">@GetRoleLabel(member.MemberRole)</div>
+                                </div>
+                            </div>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </div>
+
+                <MudIconButton Icon="@Icons.Material.Filled.PersonAdd"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined"
+                               Disabled="_selectedMemberToAdd == null"
+                               OnClick="AddAssignee"
+                               Style="height:56px; width:56px; border-radius:10px; margin-top:0;" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(_assigneeError))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">@_assigneeError</MudAlert>
+            }
+
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton ButtonType="ButtonType.Submit"
+                   form="edit-project-task-form"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="_saving"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Сохранение...</span>
+            }
+            else
+            {
+                <span>Сохранить</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public WorkItemResponse WorkItem { get; set; } = default!;
+    [Parameter] public int ProjectId { get; set; }
+    [Parameter] public EventCallback<WorkItemResponse> OnSave { get; set; }
+
+    private UpdateWorkItemRequest _model = new();
+    private List<ProjectMemberResponse> _members = new();
+
+    // Текущие исполнители — копия из Task.Assignees, меняется локально
+    private List<UserShortDto> _currentAssignees = new();
+
+    // Что добавили / удалили за сессию редактирования
+    private List<int> _addedIds   = new();
+    private List<int> _removedIds = new();
+
+    private ProjectMemberResponse? _selectedMemberToAdd;
+    private bool _saving;
+    private string? _assigneeError;
+
+    private DateTime? _deadline
+    {
+        get => _model.DeadLine;
+        set => _model.DeadLine = value ?? DateTime.Today;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Заполняем форму текущими данными задачи
+        _model = new UpdateWorkItemRequest
+        {
+            Title       = WorkItem.Title,
+            Description = WorkItem.Description,
+            Priority    = WorkItem.Priority,
+            State       = WorkItem.State,
+            DeadLine    = WorkItem.DeadLine
+        };
+
+        // Загружаем параллельно: актуальных исполнителей задачи + всех участников проекта
+        var assigneesTask = AssigneeService.GetAsync(WorkItem.Id);
+        var membersTask   = MemberService.GetMembersAsync(ProjectId);
+        await System.Threading.Tasks.Task.WhenAll(assigneesTask, membersTask);
+
+        // Текущие исполнители задачи (свежие с сервера)
+        _currentAssignees = assigneesTask.Result
+            .Select(x => new UserShortDto { Id = x.UserId, Name = x.UserName })
+            .ToList();
+
+        // Все участники проекта — из них будем выбирать новых исполнителей
+        _members = membersTask.Result;
+    }
+
+    // ── Автодополнение ──
+
+    private Task<IEnumerable<ProjectMemberResponse>> SearchMembers(string value, CancellationToken _)
+    {
+        // Исключаем уже добавленных
+        var available = _members
+            .Where(m => _currentAssignees.All(a => a.Id != m.UserId));
+
+        if (!string.IsNullOrWhiteSpace(value))
+            available = available.Where(m =>
+                m.UserName.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(available);
+    }
+
+    // ── Управление исполнителями (только локально, запросы идут при Save) ──
+
+    private void AddAssignee()
+    {
+        if (_selectedMemberToAdd == null) return;
+        _assigneeError = null;
+
+        // Добавляем в локальный список
+        _currentAssignees.Add(new UserShortDto
+        {
+            Id = _selectedMemberToAdd.UserId,
+            Name   = _selectedMemberToAdd.UserName
+        });
+
+        // Запоминаем что добавили (если до этого удаляли — отменяем удаление)
+        _removedIds.Remove(_selectedMemberToAdd.UserId);
+        if (!_addedIds.Contains(_selectedMemberToAdd.UserId))
+            _addedIds.Add(_selectedMemberToAdd.UserId);
+
+        _selectedMemberToAdd = null;
+    }
+
+    private void RemoveAssignee(UserShortDto assignee)
+    {
+        _currentAssignees.Remove(assignee);
+
+        // Запоминаем что удалили (если только что добавили — просто отменяем добавление)
+        if (_addedIds.Contains(assignee.Id))
+            _addedIds.Remove(assignee.Id);
+        else
+            _removedIds.Add(assignee.Id);
+    }
+
+    // ── Сохранение ──
+
+    private async Task Save()
+    {
+        _saving = true;
+        _assigneeError = null;
+
+        try
+        {
+            // 1. Обновляем саму задачу
+            var updated = await TaskService.UpdateAsync(WorkItem.Id, _model);
+
+            // 2. Добавляем новых исполнителей (один запрос со списком)
+            if (_addedIds.Any())
+                await AssigneeService.AddAsync(WorkItem.Id, new AddAssigneeRequest { UserId = _addedIds });
+
+            // 3. Удаляем убранных исполнителей (по одному — такой API)
+            foreach (var userId in _removedIds)
+                await AssigneeService.RemoveAsync(WorkItem.Id, userId);
+
+            await OnSave.InvokeAsync(updated);
+            MudDialog.Close();
+        }
+        catch (Exception ex)
+        {
+            _assigneeError = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    // ── Helpers ──
+
+    private string GetPriorityColor(TaskPriority? p) => p switch
+    {
+        TaskPriority.High   => "#ef4444",
+        TaskPriority.Medium => "#f59e0b",
+        TaskPriority.Low    => "#22c55e",
+        _                   => "#555"
+    };
+
+    private string GetPriorityLabel(TaskPriority? p) => p switch
+    {
+        TaskPriority.High   => "Высокий",
+        TaskPriority.Medium => "Средний",
+        TaskPriority.Low    => "Низкий",
+        _                   => p?.ToString() ?? "—"
+    };
+
+    private string GetStateColor(TaskState? s) => s switch
+    {
+        TaskState.InProgress => "#7c6af7",
+        TaskState.Completed  => "#22c55e",
+        _                    => "#555"
+    };
+
+    private string GetStateLabel(TaskState? s) => s switch
+    {
+        TaskState.New        => "Новая",
+        TaskState.InProgress => "В работе",
+        TaskState.Completed  => "Завершена",
+        _                    => s?.ToString() ?? "—"
+    };
+
+    private string GetRoleLabel(MemberRole role) => role switch
+    {
+        MemberRole.Owner  => "Владелец",
+        MemberRole.Admin  => "Администратор",
+        MemberRole.Member => "Участник",
+        _                 => role.ToString()
+    };
+}
