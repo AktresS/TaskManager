@@ -1,4 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Text.Json
+@implements IAsyncDisposable
+@inherits LayoutComponentBase
+@inject ISnackbar Snackbar
 
 <MudThemeProvider Theme="AppTheme.Dark" IsDarkMode="true" />
 <MudPopoverProvider />
@@ -6,11 +9,8 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-
-    <!-- Хедер -->
     <MudAppBar Elevation="0" Style="background:#1a1a1a; border-bottom:1px solid #2a2a2a;">
 
-        <!-- Кнопка открытия сайдбара на мобилке -->
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
@@ -22,12 +22,104 @@
 
         <MudSpacer />
 
-        <!-- Правая часть хедера -->
         <AuthorizeView>
             <Authorized>
                 <MudText Typo="Typo.body2" Style="color:#888; margin-right:16px;">
                     @context.User.Identity!.Name
                 </MudText>
+                
+                <MudBadge Content="@NotificationService.UnreadCount"
+                        Visible="@(NotificationService.UnreadCount > 0)"
+                        Color="Color.Error"
+                        Overlap="true"
+                        Style="margin-right:8px;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                                Style="color:#888;"
+                                OnClick="ToggleNotifications" />
+                </MudBadge>
+
+                <MudPopover Open="_notificationsOpen"
+                            AnchorOrigin="Origin.BottomRight"
+                            TransformOrigin="Origin.TopRight"
+                            Paper="true"
+                            Style="background:#1e1e1e; border:1px solid #2a2a2a; border-radius:12px;">
+                    <div style="width:320px; max-height:400px; overflow-y:auto;">
+
+                        <div style="display:flex; align-items:center; justify-content:space-between;
+                                    padding:12px 16px; border-bottom:1px solid #2a2a2a;">
+                            <MudText Typo="Typo.subtitle2" Style="color:#eaeaea; font-weight:600;">
+                                Уведомления
+                            </MudText>
+                            <div style="display:flex; gap:8px;">
+                                @if (NotificationService.UnreadCount > 0)
+                                {
+                                    <MudButton Variant="Variant.Text"
+                                            Size="Size.Small"
+                                            Style="color:#7c6af7; text-transform:none; font-size:12px; padding:0;"
+                                            OnClick="NotificationService.MarkAllReadAsync">
+                                        Прочитать все
+                                    </MudButton>
+                                }
+                                @if (NotificationService.Notifications.Any(x => x.IsRead))
+                                {
+                                    <MudButton Variant="Variant.Text"
+                                            Size="Size.Small"
+                                            Style="color:#444; text-transform:none; font-size:12px; padding:0;"
+                                            OnClick="NotificationService.DeleteReadAsync">
+                                        Очистить
+                                    </MudButton>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!NotificationService.Notifications.Any())
+                        {
+                            <div style="padding:32px 16px; text-align:center;">
+                                <MudIcon Icon="@Icons.Material.Outlined.NotificationsNone"
+                                        Style="font-size:32px; color:#333;" />
+                                <MudText Typo="Typo.body2" Style="color:#444; margin-top:8px;">
+                                    Уведомлений нет
+                                </MudText>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var n in NotificationService.Notifications)
+                            {
+                                <div style="display:flex; gap:12px; padding:12px 16px; cursor:pointer;
+                                            background:@(n.IsRead ? "transparent" : "rgba(124,106,247,0.05)");
+                                            border-bottom:1px solid #1e1e1e; transition: background 0.15s;"
+                                    @onclick="() => OnNotificationClick(n)">
+
+                                    <div style="width:32px; height:32px; border-radius:8px; flex-shrink:0;
+                                                background:@GetNotificationColor(n.Type);
+                                                display:flex; align-items:center; justify-content:center;">
+                                        <MudIcon Icon="@GetNotificationIcon(n.Type)"
+                                                Style="font-size:16px; color:white;" />
+                                    </div>
+
+                                    <div style="flex:1; min-width:0;">
+                                        <div style="font-size:13px; color:@(n.IsRead ? "#666" : "#ddd");
+                                                    font-weight:@(n.IsRead ? "400" : "500");
+                                                    line-height:1.4; word-break:break-word;">
+                                            @n.Text
+                                        </div>
+                                        <div style="font-size:11px; color:#444; margin-top:3px;">
+                                            @GetTimeAgo(n.CreatedAt)
+                                        </div>
+                                    </div>
+
+                                    @if (!n.IsRead)
+                                    {
+                                        <div style="width:7px; height:7px; border-radius:50%;
+                                                    background:#7c6af7; flex-shrink:0; margin-top:4px;"></div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                </MudPopover>
+
                 <MudTooltip Text="Выйти">
                     <MudIconButton Icon="@Icons.Material.Filled.Logout"
                                 Color="Color.Inherit"
@@ -48,7 +140,6 @@
 
     </MudAppBar>
 
-    <!-- Сайдбар -->
     <MudDrawer @bind-Open="_drawerOpen"
                Variant="DrawerVariant.Responsive"
                Breakpoint="Breakpoint.Md"
@@ -57,7 +148,6 @@
         <NavMenu />
     </MudDrawer>
 
-    <!-- Контент -->
     <MudMainContent Style="background:#141414; min-height:100vh;">
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-6">
             @Body
@@ -68,6 +158,99 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _notificationsOpen = false;
+
+    private void ToggleNotifications() => _notificationsOpen = !_notificationsOpen;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var raw = await LocalStorage.GetToken();
+        if (string.IsNullOrEmpty(raw)) return;
+
+        try
+        {
+            var trimmed = raw.Trim('"');
+            var session = JsonSerializer.Deserialize<UserSession>(trimmed,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            var token = session?.Token;
+            if (string.IsNullOrEmpty(token)) return;
+
+            await NotificationService.InitAsync(token);
+            NotificationService.OnChanged += HandleNotificationChanged;
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine($"NotificationService init failed: {ex.Message}");
+        }
+
+    }
+
+    private bool _isFirstLoad = true;
+
+    private void HandleNotificationChanged()
+    {
+        if (!_isFirstLoad)
+        {
+            var latest = NotificationService.Notifications.FirstOrDefault();
+            if (latest is not null && !latest.IsRead)
+            {
+                Snackbar.Add(latest.Text, Severity.Info, config =>
+                {
+                    config.VisibleStateDuration = 4000;
+                    config.Icon = GetNotificationIcon(latest.Type);
+                    config.OnClick = _ =>
+                    {
+                        if (!string.IsNullOrEmpty(latest.Link))
+                            NavManager.NavigateTo(latest.Link);
+                        return Task.CompletedTask;
+                    };
+                });
+            }
+        }
+        _isFirstLoad = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        NotificationService.OnChanged -= StateHasChanged;
+        await NotificationService.DisposeAsync();
+    }
+
+    private async Task OnNotificationClick(NotificationResponse n)
+    {
+        _notificationsOpen = false;
+        if (!n.IsRead)
+            await NotificationService.MarkReadAsync(n.NotificationId);
+        if (!string.IsNullOrEmpty(n.Link))
+            NavManager.NavigateTo(n.Link);
+    }
+
+    private string GetNotificationIcon(NotificationType type) => type switch
+    {
+        NotificationType.DeadlineReminder    => Icons.Material.Filled.Schedule,
+        NotificationType.NewProjectMessage   => Icons.Material.Filled.Forum,
+        NotificationType.NewWorkItemMessage  => Icons.Material.Filled.Chat,
+        _                                    => Icons.Material.Filled.Notifications
+    };
+
+    private string GetNotificationColor(NotificationType type) => type switch
+    {
+        NotificationType.DeadlineReminder    => "#d97706",
+        NotificationType.NewProjectMessage   => "#2563eb",
+        NotificationType.NewWorkItemMessage  => "#059669",
+        _                                    => "#555"
+    };
+
+    private string GetTimeAgo(DateTime date)
+    {
+        var diff = DateTime.UtcNow - date;
+        if (diff.TotalMinutes < 1)  return "только что";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} мин назад";
+        if (diff.TotalHours < 24)   return $"{(int)diff.TotalHours} ч назад";
+        return $"{(int)diff.TotalDays} дн назад";
+    }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
@@ -103,3 +286,5 @@
         }
     };
 }
+
+

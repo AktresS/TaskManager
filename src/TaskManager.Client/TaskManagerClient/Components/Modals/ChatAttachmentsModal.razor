@@ -1,0 +1,158 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.Folder" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Вложения</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:420px; max-height:500px; overflow-y:auto;">
+
+            @if (!Attachments.Any())
+            {
+                <div style="display:flex; flex-direction:column; align-items:center;
+                            padding:48px 0; gap:12px;">
+                    <MudIcon Icon="@Icons.Material.Outlined.FolderOpen"
+                             Style="font-size:48px; color:#2a2a2a;" />
+                    <MudText Typo="Typo.body2" Style="color:#444;">
+                        Вложений пока нет
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <div style="display:flex; flex-direction:column; gap:6px; padding:4px 0;">
+                    @foreach (var attachment in Attachments)
+                    {
+                        <div class="attachment-row">
+
+                            <!-- Иконка типа файла -->
+                            <div class="attachment-icon"
+                                 style="background:@GetFileColor(attachment.Name);">
+                                <MudIcon Icon="@GetFileIcon(attachment.Name)"
+                                         Style="font-size:18px; color:white;" />
+                            </div>
+
+                            <!-- Инфо -->
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:13px; font-weight:500; color:#ddd;
+                                            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    @attachment.Name
+                                </div>
+                                <div style="font-size:11px; color:#555; margin-top:2px;">
+                                    @attachment.UserName · @FormatDate(attachment.SentDate)
+                                </div>
+                            </div>
+
+                            <!-- Кнопка скачать -->
+                            <a href="@attachment.Url"
+                               target="_blank"
+                               download="@attachment.Name"
+                               style="text-decoration:none; flex-shrink:0;">
+                                <MudTooltip Text="Скачать">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                                   Size="Size.Small"
+                                                   Style="color:#555;" />
+                                </MudTooltip>
+                            </a>
+
+                        </div>
+                    }
+                </div>
+            }
+
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close()"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Закрыть
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .attachment-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #1a1a1a;
+        border: 1px solid #242424;
+        transition: border-color 0.15s;
+    }
+
+    .attachment-row:hover { border-color: #333; }
+
+    .attachment-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<AttachmentItem> Attachments { get; set; } = new();
+
+    public record AttachmentItem(
+        string Url,
+        string Name,
+        string UserName,
+        DateTime SentDate);
+
+    private string GetFileIcon(string name)
+    {
+        var ext = Path.GetExtension(name).ToLower();
+        return ext switch
+        {
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp"
+                => Icons.Material.Filled.Image,
+            ".pdf"
+                => Icons.Material.Filled.PictureAsPdf,
+            ".doc" or ".docx"
+                => Icons.Material.Filled.Description,
+            ".xls" or ".xlsx"
+                => Icons.Material.Filled.TableChart,
+            ".zip" or ".rar" or ".7z"
+                => Icons.Material.Filled.FolderZip,
+            ".mp4" or ".mov" or ".avi"
+                => Icons.Material.Filled.VideoFile,
+            _   => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private string GetFileColor(string name)
+    {
+        var ext = Path.GetExtension(name).ToLower();
+        return ext switch
+        {
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp" => "#059669",
+            ".pdf"                                            => "#dc2626",
+            ".doc" or ".docx"                                => "#2563eb",
+            ".xls" or ".xlsx"                                => "#16a34a",
+            ".zip" or ".rar" or ".7z"                        => "#d97706",
+            ".mp4" or ".mov" or ".avi"                       => "#7c3aed",
+            _                                                => "#555"
+        };
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var local = date.ToLocalTime();
+        return local.Date == DateTime.Today
+            ? local.ToString("HH:mm")
+            : local.ToString("dd.MM.yyyy");
+    }
+}

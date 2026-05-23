@@ -6,11 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.WorkItemMessages;
 
-public class WorkItemMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth) : IWorkItemMessageService
+public class WorkItemMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth, INotificationSender sender) : IWorkItemMessageService
 {
     private async Task<WorkItem> GetAndCheckAccess(int workItemId)
     {
@@ -43,11 +44,32 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
             WorkItemId = workItemId,
             UserId = currentUser.UserId,
             Text = request.Text,
-            AttachmentUrl = request.AttachmentUrl
+            AttachmentUrl = request.AttachmentUrl,
+            AttachmentName = request.AttachmentName
         };
 
         context.WorkItemMessages.Add(message);
         await context.SaveChangesAsync();
+
+        var workItem = await context.WorkItems
+            .Include(x => x.Assignees)
+            .FirstAsync(x => x.WorkItemId == workItemId);
+
+        var usersToNotify = workItem.Assignees
+            .Select(x => x.UserId)
+            .Append(workItem.CreatedById!.Value)
+            .Distinct()
+            .Where(id => id != currentUser.UserId);
+
+        var sender_user = await context.Users.FindAsync(currentUser.UserId);
+        foreach (var userId in usersToNotify)
+        {
+            await sender.SendAsync(
+                userId,
+                $"{sender_user!.Name} написал в задаче «{workItem.Title}»",
+                NotificationType.NewWorkItemMessage,
+                $"/chats?task={workItemId}");
+        }
 
         var createdMessage = await context.WorkItemMessages
             .Include(x => x.User)
@@ -69,8 +91,10 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
             UserName = message.User.Name,
             WorkItemId = message.WorkItemId,
             WorkItemName = message.WorkItem.Title,
+            AvatarUrl = message.User.AvatarUrl,
             Text = message.Text,
             AttachmentUrl = message.AttachmentUrl,
+            AttachmentName = message.AttachmentName,
             SentDate = message.SentDate
         };
     }
@@ -82,7 +106,7 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
         var messages = await context.WorkItemMessages
             .Include(x => x.User)
             .Where(x => x.WorkItemId == workItemId)
-            .OrderByDescending(x => x.SentDate)
+            .OrderBy(x => x.SentDate)
             .ToListAsync();
 
         return messages.Select(MapToResponse).ToList();

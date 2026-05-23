@@ -1,5 +1,6 @@
 
 using System.Data;
+using BaseLibrary.DTOs;
 using BaseLibrary.DTOs.ColumnDtos;
 using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,8 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
 
         var columns = await context.BoardColumns
             .Include(c => c.WorkItems)
+                .ThenInclude(w => w.Assignees)
+                    .ThenInclude(a => a.User)
             .Where(x => x.BoardId == boardId)
             .OrderBy(x => x.Order)
             .ToListAsync();
@@ -37,7 +40,13 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
                 Description = w.Description,
                 Priority = w.Priority,
                 State = w.State,
-                DeadLine = w.DeadLine
+                DeadLine = w.DeadLine,
+                Assignees   = w.Assignees.Select(a => new UserShortDto
+                {
+                    Id        = a.UserId,
+                    Name      = a.User.Name,
+                    AvatarUrl = a.User.AvatarUrl
+                }).ToList()
             }).ToList()
         }).ToList();
     }

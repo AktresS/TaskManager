@@ -1,14 +1,16 @@
 using BaseLibrary.DTOs.ProjectMessageDtos;
+using BaseLibrary.Enums;
 using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.ProjectMessages;
 
-public class ProjectMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth): IProjectMessageService
+public class ProjectMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth, INotificationSender sender): IProjectMessageService
 {
     public async Task<ProjectMessageResponse> CreateAsync(int projectId, CreateProjectMessageRequest request)
     {
@@ -19,11 +21,28 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
             ProjectId = projectId,
             UserId = currentUser.UserId,
             Text = request.Text,
-            AttachmentUrl = request.AttachmentUrl
+            AttachmentUrl = request.AttachmentUrl,
+            AttachmentName = request.AttachmentName
         };
 
         context.ProjectMessages.Add(message);
         await context.SaveChangesAsync();
+
+        var members = await context.ProjectMembers
+            .Where(x => x.ProjectId == projectId && x.UserId != currentUser.UserId)
+            .ToListAsync();
+
+        var project = await context.Projects.FindAsync(projectId);
+
+        var sender_user = await context.Users.FindAsync(currentUser.UserId);
+        foreach (var member in members)
+        {
+            await sender.SendAsync(
+                member.UserId,
+                $"{sender_user!.Name} написал в чате проекта «{project!.Name}»",
+                NotificationType.NewProjectMessage,
+                $"/chats?project={projectId}");
+        }
 
         return new ProjectMessageResponse
         {
@@ -32,6 +51,7 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
             UserName = (await context.Users.FindAsync(message.UserId))!.Name,
             Text = message.Text,
             AttachmentUrl = message.AttachmentUrl,
+            AttachmentName = request.AttachmentName,
             SentDate = message.SentDate
         };
     }
@@ -84,8 +104,10 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
                 UserName = p.User.Name,
                 ProjectId = p.ProjectId,
                 ProjectName = p.Project.Name,
+                AvatarUrl = p.User.AvatarUrl,
                 Text = p.Text,
                 AttachmentUrl = p.AttachmentUrl,
+                AttachmentName = p.AttachmentName,
                 SentDate = p.SentDate
             }).ToListAsync();
     }

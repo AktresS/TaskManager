@@ -8,27 +8,32 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="CloudinaryDotNet" Version="1.29.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.13.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Cloud\" />
     <Folder Include="Controllers\" />
     <Folder Include="Data\" />
+    <Folder Include="Hubs\" />
     <Folder Include="Security\" />
     <Folder Include="Services\Boards\" />
     <Folder Include="Services\Columns\" />
+    <Folder Include="Services\Files\" />
+    <Folder Include="Services\Notifications\" />
     <Folder Include="Services\ProjectAuthorization\" />
     <Folder Include="Services\ProjectMembers\" />
     <Folder Include="Services\ProjectMessages\" />
     <Folder Include="Services\Projects\" />
+    <Folder Include="Services\UserProfile\" />
     <Folder Include="Services\WorkItemMessages\" />
     <Folder Include="Services\WorkItems\" />
     <Folder Include="Services\WorkItemAssignees\" />

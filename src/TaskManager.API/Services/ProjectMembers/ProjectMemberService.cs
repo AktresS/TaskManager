@@ -24,6 +24,7 @@ public class ProjectMemberService(AppDbContext context, IProjectAuthorizationSer
             })
             .ToListAsync();
     }
+    
     public async Task AddMemberAsync(int projectId, AddProjectMemberRequest request)
     {
         var projectExists = await context.Projects

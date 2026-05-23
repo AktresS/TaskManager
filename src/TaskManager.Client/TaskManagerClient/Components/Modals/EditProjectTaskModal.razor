@@ -71,12 +71,10 @@
 
             </EditForm>
 
-            <!-- Исполнители — вынесены за EditForm чтобы не мешать сабмиту -->
             <MudText Typo="Typo.caption" Style="color:#555; margin-bottom:8px; display:block;">
                 Исполнители
             </MudText>
 
-            <!-- Текущие исполнители -->
             @if (_currentAssignees.Any())
             {
                 <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
@@ -95,7 +93,6 @@
                 </div>
             }
 
-            <!-- Добавить исполнителя -->
             <div style="display:flex; gap:8px; align-items:flex-start;">
                 <div style="flex:1;">
                     <MudAutocomplete T="ProjectMemberResponse"
@@ -174,10 +171,8 @@
     private UpdateWorkItemRequest _model = new();
     private List<ProjectMemberResponse> _members = new();
 
-    // Текущие исполнители — копия из Task.Assignees, меняется локально
     private List<UserShortDto> _currentAssignees = new();
 
-    // Что добавили / удалили за сессию редактирования
     private List<int> _addedIds   = new();
     private List<int> _removedIds = new();
 
@@ -193,7 +188,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Заполняем форму текущими данными задачи
         _model = new UpdateWorkItemRequest
         {
             Title       = WorkItem.Title,
@@ -203,25 +197,19 @@
             DeadLine    = WorkItem.DeadLine
         };
 
-        // Загружаем параллельно: актуальных исполнителей задачи + всех участников проекта
         var assigneesTask = AssigneeService.GetAsync(WorkItem.Id);
         var membersTask   = MemberService.GetMembersAsync(ProjectId);
         await System.Threading.Tasks.Task.WhenAll(assigneesTask, membersTask);
 
-        // Текущие исполнители задачи (свежие с сервера)
         _currentAssignees = assigneesTask.Result
             .Select(x => new UserShortDto { Id = x.UserId, Name = x.UserName })
             .ToList();
 
-        // Все участники проекта — из них будем выбирать новых исполнителей
         _members = membersTask.Result;
     }
 
-    // ── Автодополнение ──
-
     private Task<IEnumerable<ProjectMemberResponse>> SearchMembers(string value, CancellationToken _)
     {
-        // Исключаем уже добавленных
         var available = _members
             .Where(m => _currentAssignees.All(a => a.Id != m.UserId));
 
@@ -232,21 +220,17 @@
         return Task.FromResult(available);
     }
 
-    // ── Управление исполнителями (только локально, запросы идут при Save) ──
-
     private void AddAssignee()
     {
         if (_selectedMemberToAdd == null) return;
         _assigneeError = null;
 
-        // Добавляем в локальный список
         _currentAssignees.Add(new UserShortDto
         {
             Id = _selectedMemberToAdd.UserId,
             Name   = _selectedMemberToAdd.UserName
         });
 
-        // Запоминаем что добавили (если до этого удаляли — отменяем удаление)
         _removedIds.Remove(_selectedMemberToAdd.UserId);
         if (!_addedIds.Contains(_selectedMemberToAdd.UserId))
             _addedIds.Add(_selectedMemberToAdd.UserId);
@@ -258,14 +242,11 @@
     {
         _currentAssignees.Remove(assignee);
 
-        // Запоминаем что удалили (если только что добавили — просто отменяем добавление)
         if (_addedIds.Contains(assignee.Id))
             _addedIds.Remove(assignee.Id);
         else
             _removedIds.Add(assignee.Id);
     }
-
-    // ── Сохранение ──
 
     private async Task Save()
     {
@@ -274,14 +255,11 @@
 
         try
         {
-            // 1. Обновляем саму задачу
             var updated = await TaskService.UpdateAsync(WorkItem.Id, _model);
 
-            // 2. Добавляем новых исполнителей (один запрос со списком)
             if (_addedIds.Any())
                 await AssigneeService.AddAsync(WorkItem.Id, new AddAssigneeRequest { UserId = _addedIds });
 
-            // 3. Удаляем убранных исполнителей (по одному — такой API)
             foreach (var userId in _removedIds)
                 await AssigneeService.RemoveAsync(WorkItem.Id, userId);
 
@@ -298,7 +276,6 @@
         }
     }
 
-    // ── Helpers ──
 
     private string GetPriorityColor(TaskPriority? p) => p switch
     {
@@ -319,6 +296,7 @@
     private string GetStateColor(TaskState? s) => s switch
     {
         TaskState.InProgress => "#7c6af7",
+        TaskState.OnHold     => "#f59e0b",
         TaskState.Completed  => "#22c55e",
         _                    => "#555"
     };
@@ -327,6 +305,7 @@
     {
         TaskState.New        => "Новая",
         TaskState.InProgress => "В работе",
+        TaskState.OnHold     => "Приостановлена",
         TaskState.Completed  => "Завершена",
         _                    => s?.ToString() ?? "—"
     };

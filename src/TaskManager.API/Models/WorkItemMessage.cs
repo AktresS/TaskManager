@@ -23,6 +23,9 @@ public class WorkItemMessage
     [MaxLength(500)]
     public string? AttachmentUrl { get; set; }
 
+    [MaxLength(255)]
+    public string? AttachmentName { get; set; }
+
     [Required]
     public DateTime SentDate { get; set; } = DateTime.UtcNow;
 

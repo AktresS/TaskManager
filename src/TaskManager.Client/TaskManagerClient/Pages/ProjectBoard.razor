@@ -17,7 +17,12 @@
             </MudText>
         </div>
     </div>
-
+    <MudTooltip Text="Диаграмма Ганта">
+        <MudIconButton Icon="@Icons.Material.Filled.BarChart"
+                    Size="Size.Small"
+                    Style="color:#555;"
+                    OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/gantt")' />
+    </MudTooltip>
     <!-- Переключалка досок -->
     <div style="display:flex; align-items:center; gap:8px;">
         @if (boards.Count > 0)
@@ -106,7 +111,6 @@ else
                     </div>
                 </div>
 
-                <!-- Карточки задач -->
                 <div class="column-cards">
                     @foreach (var task in col.WorkItems)
                     {
@@ -138,6 +142,27 @@ else
                                              Style="font-size:11px;" />
                                     @t.DeadLine.ToString("dd MMM")
                                 </span>
+
+                                <div class="assignees">
+                                    @foreach (var a in task.Assignees.Take(3))
+                                    {
+                                        <div class="avatar-chip" title="@(a.Name ?? "?")">
+                                            @if (!string.IsNullOrEmpty(a.AvatarUrl))
+                                            {
+                                                <img src="@a.AvatarUrl" 
+                                                    style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                                            }
+                                            else
+                                            {
+                                                @((a.Name is { Length: > 0 } ? a.Name[0].ToString() : "?"))
+                                            }
+                                        </div>
+                                    }
+                                    @if (task.Assignees.Count > 3)
+                                    {
+                                        <div class="avatar-chip more">+@(task.Assignees.Count - 3)</div>
+                                    }
+                                </div>
 
                                 @if (t.State != TaskState.Completed)
                                 {
@@ -185,12 +210,26 @@ else
     private List<ColumnBaseResponse> columns = new();
     private int? activeBoardId;
     private bool isLoading = true;
-
     private int? draggingTaskId;
+    private int _loadedProjectId = -1;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadBoards();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProjectId != _loadedProjectId)
+        {
+            _loadedProjectId = ProjectId;
+            activeBoardId = null;
+            boards = new();
+            columns = new();
+            isLoading = true;
+            StateHasChanged(); 
+            await LoadBoards();
+        }
     }
 
     private async Task LoadBoards()
@@ -221,10 +260,7 @@ else
         {
             await TaskService.MoveAsync(taskId, columnId);
         }
-        catch
-        {
-            // rollback можно позже добавить
-        }
+        catch{ }
     }
 
     private async Task SwitchBoard(int boardId)
@@ -235,11 +271,8 @@ else
         isLoading = false;
     }
 
-    // ── Drag & Drop ──
-
     private void OnDragStart(int taskId) => draggingTaskId = taskId;
     private void OnDragEnd() { draggingTaskId = null; }
-
 
     private async Task OnDrop(int targetColumnId)
     {
@@ -258,15 +291,11 @@ else
 
         if (task is null || sourceCol is null || sourceCol.Id == targetColumnId) return;
 
-        // Оптимистичное обновление — UI меняется мгновенно
         sourceCol.WorkItems.Remove(task);
         columns.First(c => c.Id == targetColumnId).WorkItems.Add(task);
 
-        // Запрос на сервер в фоне — не ждём
         _ = SaveMoveAsync(task.Id, targetColumnId);
     }
-
-    // ── Задачи ──
 
     private async Task OpenTaskDetail(WorkItemResponse task)
     {
@@ -292,7 +321,6 @@ else
         await LoadColumns();
     }
 
-    // ── Доски ──
 
     private async Task OpenCreateBoardModal()
     {
@@ -330,8 +358,6 @@ else
         await DialogService.ShowAsync<ConfirmDialog>("", parameters,
             new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
     }
-
-    // ── Колонки ──
 
     private async Task OpenCreateColumnModal()
     {
@@ -375,8 +401,6 @@ else
             new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
     }
 
-    // ── Задачи ──
-
     private async Task OpenAddTaskModal(int columnId)
     {
         var options = new DialogOptions
@@ -402,8 +426,6 @@ else
         await DialogService.ShowAsync<CreateProjectTaskModal>("", parameters, options);
     }
 
-    // ── Helpers ──
-
     private static readonly string[] _columnColors =
         { "#7c6af7", "#2563eb", "#059669", "#d97706", "#dc2626", "#0891b2" };
 
@@ -421,6 +443,7 @@ else
     private string GetStatePill(TaskState? s) => s switch
     {
         TaskState.InProgress => "pill-inprogress",
+        TaskState.OnHold     => "pill-onhold",
         TaskState.Completed  => "pill-done",
         _                    => "pill-new"
     };
@@ -429,6 +452,7 @@ else
     {
         TaskState.New        => "Новая",
         TaskState.InProgress => "В работе",
+        TaskState.OnHold     => "Приостановлена",
         TaskState.Completed  => "Готово",
         _                    => "—"
     };

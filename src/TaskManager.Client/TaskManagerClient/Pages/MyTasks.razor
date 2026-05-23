@@ -2,7 +2,6 @@
 @attribute [Authorize]
 <PageTitle>Мои задачи</PageTitle>
 
-<!-- Хедер страницы -->
 <div class="tasks-header">
     <div>
         <MudText Typo="Typo.h4" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.5px;">
@@ -22,7 +21,6 @@
     </MudButton>
 </div>
 
-<!-- Фильтр по статусу -->
 <div class="filter-row">
     @foreach (var filter in _filters)
     {
@@ -34,7 +32,6 @@
     }
 </div>
 
-<!-- Состояния загрузки / ошибки -->
 @if (isLoading)
 {
     <div class="loading-state">
@@ -64,44 +61,45 @@ else
         {
             <div class="task-card @GetCardAccent(task.Priority)" @onclick="() => StartEdit(task)">
 
-                <!-- Верхняя строка: приоритет + статус -->
                 <div class="task-card-top">
                     <div class="priority-dot @GetPriorityDot(task.Priority)"></div>
                     <span class="state-pill @GetStatePill(task.State)">@GetStateLabel(task.State)</span>
                 </div>
 
-                <!-- Название -->
                 <div class="task-title">@task.Title</div>
 
-                <!-- Описание -->
                 @if (!string.IsNullOrEmpty(task.Description))
                 {
                     <div class="task-desc">@task.Description</div>
                 }
 
-                <!-- Проект -->
                 <div class="task-project">
                     <MudIcon Icon="@Icons.Material.Filled.FolderOpen"
                              Style="font-size:13px; color:#444;" />
                     <span>@(task.ProjectName ?? "Личная задача")</span>
                 </div>
 
-                <!-- Нижняя строка -->
                 <div class="task-card-bottom">
 
-                    <!-- Дедлайн -->
                     <span class="deadline @GetDeadlineClass(task.DeadLine)">
                         <MudIcon Icon="@Icons.Material.Filled.Schedule"
                                  Style="font-size:13px;" />
                         @task.DeadLine.ToString("dd MMM")
                     </span>
 
-                    <!-- Исполнители -->
                     <div class="assignees">
                         @foreach (var a in task.Assignees.Take(3))
                         {
                             <div class="avatar-chip" title="@(a.Name ?? "?")">
-                                @((a.Name is { Length: > 0 } ? a.Name[0].ToString() : "?"))
+                                @if (!string.IsNullOrEmpty(a.AvatarUrl))
+                                {
+                                    <img src="@a.AvatarUrl" 
+                                        style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    @((a.Name is { Length: > 0 } ? a.Name[0].ToString() : "?"))
+                                }
                             </div>
                         }
                         @if (task.Assignees.Count > 3)
@@ -110,7 +108,6 @@ else
                         }
                     </div>
 
-                    <!-- Кнопки действий -->
                     <div class="task-actions" @onclick:stopPropagation="true">
                         @if (task.State != TaskState.Completed)
                         {
@@ -152,6 +149,7 @@ else
         new("all", "Все"),
         new("new", "Новые"),
         new("inprogress", "В работе"),
+        new("onhold",     "Приостановленные"),
         new("done", "Завершённые"),
         new("overdue", "Просроченные"),
     };
@@ -160,6 +158,7 @@ else
     {
         "new"        => t.State == TaskState.New,
         "inprogress" => t.State == TaskState.InProgress,
+        "onhold" => t.State == TaskState.OnHold,
         "done"       => t.State == TaskState.Completed,
         "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
         _            => true
@@ -169,6 +168,7 @@ else
     {
         "new"        => t.State == TaskState.New,
         "inprogress" => t.State == TaskState.InProgress,
+        "onhold" => t.State == TaskState.OnHold,
         "done"       => t.State == TaskState.Completed,
         "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
         _            => true
@@ -185,7 +185,6 @@ else
         finally { isLoading = false; }
     }
 
-    // ── Helpers ──
 
     private string GetCardAccent(TaskPriority p) => p switch
     {
@@ -214,6 +213,7 @@ else
     {
         TaskState.New        => "Новая",
         TaskState.InProgress => "В работе",
+        TaskState.OnHold     => "bg-warning text-dark",
         TaskState.Completed  => "Готово",
         _                    => s.ToString()
     };
@@ -224,8 +224,6 @@ else
         if ((date - DateTime.Now).Days <= 2) return "soon";
         return "normal";
     }
-
-    // ── Действия ──
 
     private async Task MarkDone(int id)
     {

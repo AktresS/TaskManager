@@ -22,7 +22,14 @@ public enum TaskState
     New,
     InProgress,
     Completed,
-    Cancelled
+    OnHold
+}
+
+public enum NotificationType
+{
+    DeadlineReminder,
+    NewProjectMessage,
+    NewWorkItemMessage
 }
 
 public enum MessageType

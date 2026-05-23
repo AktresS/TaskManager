@@ -1,13 +1,15 @@
 using BaseLibrary.DTOs.ProjectMessageDtos;
 using BaseLibrary.Responses;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Services.ProjectMessages;
 
 namespace TaskManager.Controllers
 {
-    [Route("projects/{projectId}/messages")]
+    [Route("api/projects/{projectId}/messages")]
     [ApiController]
+    [Authorize]
     public class ProjectMessageController(IProjectMessageService service) : ControllerBase
     {
         [HttpGet]

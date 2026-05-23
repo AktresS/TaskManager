@@ -21,8 +21,6 @@ public class CurrentUserService : ICurrentUserService
                 .FindFirst(ClaimTypes.NameIdentifier)?
                 .Value;
 
-            Console.WriteLine($"[CurrentUserService] Claim value: '{userIdClaim}'");
-
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             {
                 throw new UnauthorizedAccessException("Невозможно определить пользователя из токена");

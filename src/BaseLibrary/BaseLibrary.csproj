@@ -9,6 +9,7 @@
   <ItemGroup>
     <Folder Include="DTOs\BoardDtos\" />
     <Folder Include="DTOs\ColumnDtos\" />
+    <Folder Include="DTOs\SettingsDtos\" />
     <Folder Include="DTOs\TaskDtos\" />
     <Folder Include="Enums\" />
   </ItemGroup>

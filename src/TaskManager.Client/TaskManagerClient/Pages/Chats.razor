@@ -1,0 +1,641 @@
+﻿@page "/chats"
+@attribute [Authorize]
+
+<PageTitle>Чаты</PageTitle>
+<div class="chat-layout">
+
+    <div class="chat-sidebar">
+
+        <div class="chat-sidebar-header">
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Чаты</MudText>
+        </div>
+
+        <div class="chat-search">
+            <MudTextField @bind-Value="_search"
+                          Placeholder="Поиск..."
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          Style="font-size:13px;" />
+        </div>
+
+        @if (_loadingChats)
+        {
+            <div style="padding:16px;">
+                @for (int i = 0; i < 5; i++)
+                {
+                    <div class="chat-item-skeleton"></div>
+                }
+            </div>
+        }
+        else
+        {
+            @if (FilteredProjectChats.Any())
+            {
+                <div class="chat-group-label">Проекты</div>
+                @foreach (var project in FilteredProjectChats)
+                {
+                    <div class="chat-item @(_activeChat?.Id == $"p_{project.ProjectId}" ? "active" : "")"
+                         @onclick="() => OpenProjectChat(project)">
+                        <div class="chat-item-avatar" style="background:@GetProjectColor(project.ProjectId);">
+                            @GetInitials(project.Name)
+                        </div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">@project.Name</div>
+                            <div class="chat-item-sub">Проектный чат</div>
+                        </div>
+                    </div>
+                }
+            }
+
+            @if (FilteredTaskChats.Any())
+            {
+                <div class="chat-group-label">Задачи</div>
+                @foreach (var task in FilteredTaskChats)
+                {
+                    <div class="chat-item @(_activeChat?.Id == $"t_{task.Id}" ? "active" : "")"
+                         @onclick="() => OpenTaskChat(task)">
+                        <div class="chat-item-avatar task-avatar">
+                            <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Style="font-size:16px;" />
+                        </div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">@task.Title</div>
+                            <div class="chat-item-sub">@(task.ProjectName ?? "Личная задача")</div>
+                        </div>
+                    </div>
+                }
+            }
+
+            @if (!FilteredProjectChats.Any() && !FilteredTaskChats.Any())
+            {
+                <div style="padding:24px 16px; text-align:center; color:#444; font-size:13px;">
+                    Ничего не найдено
+                </div>
+            }
+        }
+    </div>
+
+    <div class="chat-main">
+
+        @if (_activeChat is null)
+        {
+            <div class="chat-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.Forum"
+                         Style="font-size:56px; color:#2a2a2a;" />
+                <MudText Typo="Typo.body1" Style="color:#444; margin-top:16px;">
+                    Выберите чат
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <div class="chat-header">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="chat-header-avatar"
+                         style="background:@(_activeChat.IsProject ? GetProjectColor(int.Parse(_activeChat.EntityId)) : "#2a2a2a");">
+                        @if (_activeChat.IsProject)
+                        {
+                            @GetInitials(_activeChat.Title)
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Style="font-size:16px;" />
+                        }
+                    </div>
+                    <div>
+                        <div style="font-weight:600; color:#eaeaea; font-size:15px;">@_activeChat.Title</div>
+                        <div style="font-size:12px; color:#555;">
+                            @(_activeChat.IsProject ? "Проектный чат" : _activeChat.SubTitle)
+                        </div>
+                    </div>
+                    
+                    <MudButton Variant="Variant.Text"
+                            StartIcon="@Icons.Material.Filled.Folder"
+                            Size="Size.Small"
+                            Style="color:#555; text-transform:none; font-size:12px;"
+                            OnClick="OpenAttachments">
+                        Вложения
+                    </MudButton>
+                </div>
+            </div>
+
+            <div class="chat-messages" @ref="_messagesContainer">
+                @if (_loadingMessages)
+                {
+                    <div style="display:flex; justify-content:center; padding:32px;">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                    </div>
+                }
+                else if (!_messages.Any())
+                {
+                    <div class="chat-no-messages">
+                        <MudText Typo="Typo.body2" Style="color:#444;">Сообщений пока нет. Напишите первым!</MudText>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var msg in _messages)
+                    {
+                        var isOwn = msg.UserId == _currentUserId;
+                        <div class="message-row @(isOwn ? "own" : "")">
+
+                            @if (!isOwn)
+                            {
+                                <div class="message-avatar">
+                                    @if (!string.IsNullOrEmpty(msg.AvatarUrl))
+                                    {
+                                        <img src="@msg.AvatarUrl"
+                                            style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        @(msg.UserName is { Length: > 0 } ? msg.UserName[0].ToString().ToUpper() : "?")
+                                    }
+                                </div>
+                            }
+
+                            <div class="message-bubble @(isOwn ? "own" : "")">
+
+                                @if (!isOwn)
+                                {
+                                    <div class="message-author">@msg.UserName</div>
+                                }
+
+                                @if (_editingMessageId == msg.Id)
+                                {
+                                    <MudTextField @bind-Value="_editText"
+                                                  Variant="Variant.Outlined"
+                                                  Immediate="true"
+                                                  Style="font-size:13px;"
+                                                  @onkeydown="OnEditKeyDown" />
+                                    <div style="display:flex; gap:8px; margin-top:6px;">
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   Style="text-transform:none; font-size:12px; height:28px;"
+                                                   OnClick="SaveEdit">
+                                            Сохранить
+                                        </MudButton>
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   Style="text-transform:none; font-size:12px; height:28px; color:#555;"
+                                                   OnClick="CancelEdit">
+                                            Отмена
+                                        </MudButton>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrEmpty(msg.Text))
+                                    {
+                                        <div class="message-text">@msg.Text</div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(msg.AttachmentUrl))
+                                    {
+                                        <a href="@msg.AttachmentUrl"
+                                        target="_blank"
+                                        class="message-attachment"
+                                        download>
+                                            <MudIcon Icon="@Icons.Material.Filled.AttachFile"
+                                                    Style="font-size:14px;" />
+                                            @(msg.AttachmentName ?? "Вложение")
+                                        </a>
+                                    }
+                                }
+
+                                <div class="message-meta">
+                                    <span>@FormatDate(msg.SentDate)</span>
+
+                                    @if (isOwn && _editingMessageId != msg.Id)
+                                    {
+                                        <div class="message-actions">
+                                            <MudIconButton Icon="@Icons.Material.Filled.EditNote"
+                                                           Size="Size.Small"
+                                                           Style="color:#555; padding:2px;"
+                                                           OnClick="() => StartEdit(msg)" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                                           Size="Size.Small"
+                                                           Style="color:#555; padding:2px;"
+                                                           OnClick="() => DeleteMessage(msg)" />
+                                        </div>
+                                    }
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="chat-input-area">
+                <label class="attach-btn" title="Прикрепить файл">
+                    @if (_uploadingAttachment)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="font-size:20px;" />
+                    }
+                    <InputFile OnChange="OnAttachmentChanged"
+                            style="display:none;"
+                            disabled="@_uploadingAttachment" />
+                </label>
+
+                @if (_pendingAttachmentUrl is not null)
+                {
+                    <div class="attachment-preview">
+                        <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile"
+                                Style="font-size:14px; color:#7c6af7;" />
+                        <span style="font-size:12px; color:#888;">@_pendingAttachmentName</span>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                    Size="Size.Small"
+                                    Style="color:#555; padding:2px;"
+                                    OnClick="() => { _pendingAttachmentUrl = null; _pendingAttachmentName = null; }" />
+                    </div>
+                }
+
+                <MudTextField @bind-Value="_newMessage"
+                            Placeholder="Написать сообщение..."
+                            Variant="Variant.Outlined"
+                            Immediate="true"
+                            @onkeydown="OnInputKeyDown"
+                            Style="font-size:14px; flex:1;"
+                            Lines="1" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Send"
+                            Color="Color.Primary"
+                            Variant="Variant.Filled"
+                            Disabled="@(string.IsNullOrWhiteSpace(_newMessage) && _pendingAttachmentUrl is null)"
+                            OnClick="SendMessage"
+                            Style="border-radius:10px; height:56px; width:56px; flex-shrink:0;" />
+            </div>
+        }
+    </div>
+
+</div>
+
+
+@code {
+    private List<ProjectResponse> _projects = new();
+    private List<WorkItemResponse> _tasks = new();
+    private bool _loadingChats = true;
+    private bool _loadingMessages = false;
+    private string _search = string.Empty;
+    private int _currentUserId;
+    private ChatEntry? _activeChat;
+    private List<ChatMessage> _messages = new();
+    private string _newMessage = string.Empty;
+    private int? _editingMessageId;
+    private string _editText = string.Empty;
+    private ElementReference _messagesContainer;
+    private bool _shouldScroll = false;
+    private bool _uploadingAttachment = false;
+    private string? _pendingAttachmentUrl;
+    private string? _pendingAttachmentName;
+
+    private record ChatEntry(string Id, string Title, string SubTitle, bool IsProject, string EntityId);
+
+    private class ChatMessage
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string? AvatarUrl { get; set; }
+        public string? Text { get; set; }
+        public string? AttachmentUrl { get; set; }
+        public string? AttachmentName { get; set; }
+        public DateTime SentDate { get; set; }
+    }
+
+    private List<ProjectResponse> FilteredProjectChats => _projects
+        .Where(p => string.IsNullOrWhiteSpace(_search) ||
+                    p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private List<WorkItemResponse> FilteredTaskChats => _tasks
+        .Where(t => string.IsNullOrWhiteSpace(_search) ||
+                    t.Title.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim != null) int.TryParse(userIdClaim.Value, out _currentUserId);
+
+        var projectsTask = ProjectService.GetUserProjectsAsync();
+        var tasksTask    = TaskService.GetMyAsync();
+        await System.Threading.Tasks.Task.WhenAll(projectsTask, tasksTask);
+
+        _projects = projectsTask.Result;
+        _tasks    = tasksTask.Result;
+        _loadingChats = false;
+
+        var uri = new Uri(NavManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        var projectId = query["project"];
+        var taskId = query["task"];
+
+        if (projectId != null && int.TryParse(projectId, out var pid))
+        {
+            var project = _projects.FirstOrDefault(p => p.ProjectId == pid);
+            if (project != null) await OpenProjectChat(project);
+        }
+        else if (taskId != null && int.TryParse(taskId, out var tid))
+        {
+            var task = _tasks.FirstOrDefault(t => t.Id == tid);
+            if (task != null) await OpenTaskChat(task);
+        }
+    }
+
+    private async Task OpenProjectChat(ProjectResponse project)
+    {
+        _activeChat = new ChatEntry(
+            Id:        $"p_{project.ProjectId}",
+            Title:     project.Name,
+            SubTitle:  "Проектный чат",
+            IsProject: true,
+            EntityId:  project.ProjectId.ToString()
+        );
+        await LoadMessages();
+    }
+
+    private async Task OpenTaskChat(WorkItemResponse task)
+    {
+        _activeChat = new ChatEntry(
+            Id:        $"t_{task.Id}",
+            Title:     task.Title,
+            SubTitle:  task.ProjectName ?? "Личная задача",
+            IsProject: false,
+            EntityId:  task.Id.ToString()
+        );
+        await LoadMessages();
+    }
+
+    private async Task OpenAttachments()
+    {
+        var attachments = _messages
+            .Where(m => !string.IsNullOrEmpty(m.AttachmentUrl))
+            .Select(m => new ChatAttachmentsModal.AttachmentItem(
+                m.AttachmentUrl!,
+                m.AttachmentName ?? "Файл",
+                m.UserName,
+                m.SentDate))
+            .ToList();
+
+        var parameters = new DialogParameters<ChatAttachmentsModal>
+        {
+            { x => x.Attachments, attachments }
+        };
+
+        await DialogService.ShowAsync<ChatAttachmentsModal>("", parameters,
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            });
+    }
+
+    private async Task LoadMessages()
+    {
+        if (_activeChat is null) return;
+
+        _loadingMessages = true;
+        _messages = new();
+        _editingMessageId = null;
+        StateHasChanged();
+
+        try
+        {
+            if (_activeChat.IsProject)
+            {
+                var projectId = int.Parse(_activeChat.EntityId);
+                var msgs = await ProjectMessageService.GetMessagesAsync(projectId);
+                _messages = msgs.Select(m => new ChatMessage
+                {
+                    Id            = m.Id,
+                    UserId        = m.UserId,
+                    UserName      = m.UserName,
+                    AvatarUrl = m.AvatarUrl,
+                    Text          = m.Text,
+                    AttachmentUrl = m.AttachmentUrl,
+                    AttachmentName = m.AttachmentName,
+                    SentDate      = m.SentDate
+                }).ToList();
+            }
+            else
+            {
+                var taskId = int.Parse(_activeChat.EntityId);
+                var msgs = await TaskMessageService.GetAsync(taskId);
+                _messages = msgs.Select(m => new ChatMessage
+                {
+                    Id            = m.MessageId,
+                    UserId        = m.UserId,
+                    UserName      = m.UserName,
+                    AvatarUrl = m.AvatarUrl,
+                    Text          = m.Text,
+                    AttachmentUrl = m.AttachmentUrl,
+                    AttachmentName = m.AttachmentName,
+                    SentDate      = m.SentDate
+                }).ToList();
+            }
+        }
+        finally
+        {
+            _loadingMessages = false;
+            _shouldScroll = true; 
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_newMessage) && _pendingAttachmentUrl is null) return;
+        if (_activeChat is null) return;
+
+        var text = _newMessage.Trim();
+        _newMessage = string.Empty;
+        var attachmentUrl = _pendingAttachmentUrl;
+        var attachmentName = _pendingAttachmentName;
+        _pendingAttachmentUrl = null;
+        _pendingAttachmentName = null;
+
+        if (_activeChat.IsProject)
+        {
+            var projectId = int.Parse(_activeChat.EntityId);
+            var msg = await ProjectMessageService.CreateAsync(projectId,
+                new CreateProjectMessageRequest 
+                { 
+                    Text = text, AttachmentUrl = attachmentUrl, AttachmentName = attachmentName
+                });
+            _messages.Add(FromProjectMessage(msg));
+        }
+        else
+        {
+            var taskId = int.Parse(_activeChat.EntityId);
+            var msg = await TaskMessageService.CreateAsync(taskId,
+                new CreateWorkItemMessageRequest 
+                { 
+                    Text = text, AttachmentUrl = attachmentUrl, AttachmentName = attachmentName
+                });
+            _messages.Add(FromTaskMessage(msg));
+        }
+
+        _shouldScroll = true;
+    }
+
+    private ChatMessage FromProjectMessage(ProjectMessageResponse msg) => new()
+    {
+        Id             = msg.Id,
+        UserId         = msg.UserId,
+        UserName       = msg.UserName,
+        AvatarUrl = msg.AvatarUrl,
+        Text           = msg.Text,
+        AttachmentUrl  = msg.AttachmentUrl,
+        AttachmentName = msg.AttachmentName,
+        SentDate       = msg.SentDate
+    };
+
+    private ChatMessage FromTaskMessage(WorkItemMessageResponse msg) => new()
+    {
+        Id             = msg.MessageId,
+        UserId         = msg.UserId,
+        UserName       = msg.UserName,
+        AvatarUrl = msg.AvatarUrl,
+        Text           = msg.Text,
+        AttachmentUrl  = msg.AttachmentUrl,
+        AttachmentName = msg.AttachmentName,
+        SentDate       = msg.SentDate
+    };
+
+    private async Task OnAttachmentChanged(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _uploadingAttachment = true;
+
+        try
+        {
+            _pendingAttachmentUrl  = await FileService.UploadAttachmentAsync(file);
+            _pendingAttachmentName = file.Name;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _uploadingAttachment = false;
+        }
+    }
+
+    private async Task OnInputKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SendMessage();
+    }
+
+    private void StartEdit(ChatMessage msg)
+    {
+        _editingMessageId = msg.Id;
+        _editText = msg.Text ?? string.Empty;
+    }
+
+    private void CancelEdit()
+    {
+        _editingMessageId = null;
+        _editText = string.Empty;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (_editingMessageId is null || _activeChat is null) return;
+
+        var msgId = _editingMessageId.Value;
+        var text  = _editText.Trim();
+
+        if (_activeChat.IsProject)
+        {
+            var projectId = int.Parse(_activeChat.EntityId);
+            var updated = await ProjectMessageService.UpdateAsync(projectId, msgId,
+                new UpdateProjectMessageRequest { Text = text });
+
+            var local = _messages.First(m => m.Id == msgId);
+            local.Text = updated.Text;
+        }
+        else
+        {
+            var taskId = int.Parse(_activeChat.EntityId);
+            var updated = await TaskMessageService.UpdateAsync(taskId, msgId,
+                new UpdateWorkItemMessageRequest { Text = text });
+
+            var local = _messages.First(m => m.Id == msgId);
+            local.Text = updated.Text;
+        }
+
+        _editingMessageId = null;
+        _editText = string.Empty;
+    }
+
+    private async Task OnEditKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey) await SaveEdit();
+        if (e.Key == "Escape") CancelEdit();
+    }
+
+    private async Task DeleteMessage(ChatMessage msg)
+    {
+        if (_activeChat is null) return;
+
+        if (_activeChat.IsProject)
+        {
+            var projectId = int.Parse(_activeChat.EntityId);
+            await ProjectMessageService.DeleteAsync(projectId, msg.Id);
+        }
+        else
+        {
+            var taskId = int.Parse(_activeChat.EntityId);
+            await TaskMessageService.Delete(taskId, msg.Id);
+        }
+
+        _messages.Remove(msg);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_shouldScroll)
+        {
+            _shouldScroll = false;
+            await JSRuntime.InvokeVoidAsync(
+                "eval",
+                "document.querySelector('.chat-messages')?.scrollTo({top: 999999, behavior: 'instant'})");
+        }
+    }
+    private static readonly string[] _colors =
+        { "#5b4fcf", "#2563eb", "#0891b2", "#059669", "#d97706", "#dc2626", "#7c3aed", "#db2777" };
+
+    private string GetProjectColor(int id) => _colors[id % _colors.Length];
+
+    private string GetInitials(string name)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length >= 2
+            ? $"{words[0][0]}{words[1][0]}".ToUpper()
+            : name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        var local = date.ToLocalTime();
+        return local.Date == DateTime.Today
+            ? local.ToString("HH:mm")
+            : local.ToString("dd.MM HH:mm");
+    }
+}
+
+

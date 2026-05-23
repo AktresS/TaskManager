@@ -80,6 +80,10 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
     public async Task<List<ProjectResponse>> GetUserProjectsAsync()
     {
         var userId = currentUser.UserId;
+        var pinned = await context.PinnedProjects
+            .Where(x => x.UserId == userId)
+            .Select(x => x.ProjectId)
+            .ToHashSetAsync();
         
         return await context.ProjectMembers
             .Where(x => x.UserId == userId)
@@ -89,13 +93,18 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
                 Name = x.Project.Name, 
                 Description = x.Project.Description,
                 OwnerId = x.Project.CreatedById,
-                CreatedAt = x.Project.CreatedDate
+                CreatedAt = x.Project.CreatedDate,
+                IsPinned = pinned.Contains(x.ProjectId)
             }).ToListAsync();
     }
 
     public async Task<ProjectResponse?> GetByIdAsync(int id)
     {
-        
+        var userId = currentUser.UserId;
+
+        var isPinned = await context.PinnedProjects
+            .AnyAsync(x => x.UserId == userId && x.ProjectId == id);
+
         return await context.Projects
             .Where(x => x.ProjectId == id)
             .Select(x => new ProjectResponse
@@ -104,10 +113,35 @@ public class ProjectService(AppDbContext context, ICurrentUserService currentUse
                 Name = x.Name,
                 Description = x.Description,
                 OwnerId = x.CreatedById,
-                CreatedAt = x.CreatedDate
+                CreatedAt = x.CreatedDate,
+                IsPinned = isPinned
             }).FirstOrDefaultAsync();
     }
     
+    public async Task<bool> TogglePinAsync(int projectId)
+    {
+        var userId = currentUser.UserId;
+
+        var existing = await context.PinnedProjects
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.ProjectId == projectId);
+
+        if (existing is not null)
+        {
+            context.PinnedProjects.Remove(existing);
+            await context.SaveChangesAsync();
+            return false;
+        }
+
+        context.PinnedProjects.Add(new UserPinnedProject
+        {
+            UserId = userId,
+            ProjectId = projectId
+        });
+
+        await context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task DeleteAsync(int id)
     {
         var project = await context.Projects.FindAsync(id);

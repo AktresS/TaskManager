@@ -1,4 +1,3 @@
-/* ── Хедер ── */
 .board-header {
     display: flex;
     align-items: center;
@@ -8,7 +7,6 @@
     gap: 12px;
 }
 
-/* ── Переключалка досок ── */
 .board-tabs {
     display: flex;
     gap: 4px;
@@ -55,7 +53,6 @@
 
 .tab-delete:hover { background: #333; color: #888; }
 
-/* ── Ряд колонок ── */
 .columns-row {
     display: flex;
     gap: 12px;
@@ -63,9 +60,9 @@
     overflow-x: auto;
     padding-bottom: 16px;
     min-height: 60vh;
+    transition: opacity 0.15s ease;
 }
 
-/* ── Канбан колонка ── */
 .kanban-column {
     min-width: 280px;
     max-width: 280px;
@@ -128,7 +125,6 @@
     min-height: 40px;
 }
 
-/* ── Карточка задачи ── */
 .task-card {
     will-change: transform;
     background: #212121;
@@ -181,6 +177,31 @@
     margin-top: 2px;
 }
 
+.assignees {
+    display: flex;
+    margin-left: auto;
+}
+
+.avatar-chip {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #2a2a2a;
+    border: 2px solid #1a1a1a;
+    color: #888;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -6px;
+    text-transform: uppercase;
+    overflow: hidden; 
+    flex-shrink: 0; 
+}
+
+.avatar-chip.more { color: #555; font-size: 10px; }
+
 .deadline {
     display: flex;
     align-items: center;
@@ -193,20 +214,18 @@
 .deadline.soon    { color: #f59e0b; }
 .deadline.normal  { color: #444; }
 
-/* ── Точка приоритета ── */
 .priority-dot { width: 7px; height: 7px; border-radius: 50%; }
 .dot-red    { background: #ef4444; box-shadow: 0 0 5px #ef444455; }
 .dot-yellow { background: #f59e0b; box-shadow: 0 0 5px #f59e0b55; }
 .dot-green  { background: #22c55e; box-shadow: 0 0 5px #22c55e55; }
 .dot-gray   { background: #444; }
 
-/* ── Пилюля статуса ── */
 .state-pill { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; }
 .pill-new        { background: #1f1f1f; color: #555; border: 1px solid #2e2e2e; }
 .pill-inprogress { background: rgba(124,106,247,0.12); color: #7c6af7; border: 1px solid rgba(124,106,247,0.25); }
+.pill-onhold { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
 .pill-done       { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
 
-/* ── Кнопка добавить колонку ── */
 .add-column-btn {
     min-width: 200px;
     height: 48px;
@@ -230,25 +249,21 @@
     background: #1a1a1a;
 }
 
-/* ── MudDropZone overrides ── */
 .mud-drop-zone {
     min-height: 40px;
     padding: 0 !important;
 }
 
-/* Подсветка зоны при перетаскивании */
 .mud-drop-zone.mud-drop-zone-drag-block {
     background: rgba(124, 106, 247, 0.04);
     border-radius: 8px;
     outline: 1px dashed rgba(124, 106, 247, 0.3);
 }
 
-/* Убираем отступы которые MudBlazor добавляет к items */
 .mud-drop-item {
     margin: 0 0 8px 0 !important;
 }
 
-/* ── Скелетон ── */
 .column-skeleton {
     min-width: 280px;
     height: 400px;
@@ -257,6 +272,8 @@
     animation: shimmer 1.4s infinite;
     border-radius: 14px;
     flex-shrink: 0;
+    opacity: 0;
+    animation: shimmer 1.4s infinite, fadeIn 0.2s ease forwards;
 }
 
 @keyframes shimmer {
@@ -264,7 +281,10 @@
     100% { background-position: -200% 0; }
 }
 
-/* ── Пустое состояние ── */
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
 .empty-state {
     display: flex;
     flex-direction: column;

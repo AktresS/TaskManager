@@ -33,5 +33,10 @@ builder.Services.AddScoped<IWorkItemAssigneeService, WorkItemAssigneeService>();
 builder.Services.AddScoped<IWorkItemMessageService, WorkItemMessageService>();
 builder.Services.AddScoped<IProjectMemberService, ProjectMemberService>();
 builder.Services.AddScoped<IProjectMessageService, ProjectMessageService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<PinStateService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IFileService, FileService>();
 
 await builder.Build().RunAsync();

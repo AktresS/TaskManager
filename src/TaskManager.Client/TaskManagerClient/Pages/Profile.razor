@@ -1,0 +1,388 @@
+﻿@page "/profile"
+@attribute [Authorize]
+
+<PageTitle>Профиль</PageTitle>
+
+<div class="profile-layout">
+
+    <!-- Левая карточка -->
+    <div class="profile-card">
+
+        <div class="profile-avatar-wrap">
+            <div class="profile-avatar">
+                @if (!string.IsNullOrEmpty(_profile?.AvatarUrl))
+                {
+                    <img src="@_profile.AvatarUrl" alt="avatar"
+                         style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                }
+                else
+                {
+                    <span>@GetInitials(_profile?.Name ?? "?")</span>
+                }
+            </div>
+
+            <label class="avatar-upload-btn" title="Изменить фото">
+                <MudIcon Icon="@Icons.Material.Filled.CameraAlt" Style="font-size:16px;" />
+                <InputFile OnChange="OnAvatarChanged" accept="image/*" style="display:none;" />
+            </label>
+        </div>
+
+        @if (_uploadingAvatar)
+        {
+            <MudText Typo="Typo.caption" Style="color:#555; margin-top:8px;">
+                Загрузка...
+            </MudText>
+        }
+
+        @if (_profile is not null)
+        {
+            <MudText Typo="Typo.h6" Align="Align.Center"
+                     Style="font-weight:700; color:#eaeaea; margin-top:16px;">
+                @_profile.Name
+            </MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center"
+                     Style="color:#555; margin-top:4px;">
+                @_profile.Email
+            </MudText>
+        }
+
+    </div>
+
+    <!-- Правая часть -->
+    <div class="profile-content">
+
+        <!-- Основная информация -->
+        <div class="profile-section">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                Основная информация
+            </MudText>
+
+            @if (_settings is not null)
+            {
+                <MudTextField @bind-Value="_settings.Name"
+                            Label="Имя"
+                            Variant="Variant.Outlined"
+                            Class="mb-4" />
+
+                <MudTextField Value="@_profile?.Email"
+                            Label="Email"
+                            Variant="Variant.Outlined"
+                            Disabled="true"
+                            Class="mb-4"
+                            HelperText="Email нельзя изменить" />
+
+                <MudButton Variant="Variant.Filled"
+                        Color="Color.Primary"
+                        Disabled="_savingSettings"
+                        OnClick="SaveSettings"
+                        Style="border-radius:10px; text-transform:none; font-weight:600;">
+                    @if (_savingSettings)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Сохранение...</span>
+                    }
+                    else
+                    {
+                        <span>Сохранить</span>
+                    }
+                </MudButton>
+            }
+
+        </div>
+
+        <MudDivider Style="border-color:#2a2a2a; margin:8px 0;" />
+
+        <!-- Смена пароля -->
+        <div class="profile-section">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                Смена пароля
+            </MudText>
+
+            <EditForm Model="_passwordModel" OnValidSubmit="ChangePassword" id="password-form">
+                <DataAnnotationsValidator />
+
+                <MudTextField @bind-Value="_passwordModel.CurrentPassword"
+                              Label="Текущий пароль"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined"
+                              Class="mb-4" />
+
+                <MudTextField @bind-Value="_passwordModel.NewPassword"
+                              Label="Новый пароль"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined"
+                              Class="mb-4" />
+
+                <MudTextField @bind-Value="_passwordModel.ConfirmPassword"
+                              Label="Повторите новый пароль"
+                              InputType="InputType.Password"
+                              Variant="Variant.Outlined"
+                              Class="mb-4" />
+
+                @if (!string.IsNullOrEmpty(_passwordError))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+                        @_passwordError
+                    </MudAlert>
+                }
+
+                <MudButton ButtonType="ButtonType.Submit"
+                           form="password-form"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Disabled="_savingPassword"
+                           Style="border-radius:10px; text-transform:none; font-weight:600;">
+                    @if (_savingPassword)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Сохранение...</span>
+                    }
+                    else
+                    {
+                        <span>Изменить пароль</span>
+                    }
+                </MudButton>
+            </EditForm>
+        </div>
+
+        <MudDivider Style="border-color:#2a2a2a; margin:8px 0;" />
+
+        <!-- Уведомления -->
+        <div class="profile-section">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                Уведомления
+            </MudText>
+
+            @if (_settings is not null)
+            {
+                <div style="display:flex; flex-direction:column; gap:16px;">
+
+                    <div class="notification-row">
+                        <div>
+                            <div style="font-size:14px; color:#ddd; font-weight:500;">
+                                Все уведомления
+                            </div>
+                            <div style="font-size:12px; color:#555; margin-top:2px;">
+                                Включить или отключить все уведомления сразу
+                            </div>
+                        </div>
+                        <MudSwitch Value="_settings.NotificationsEnabled"
+                                   ValueChanged="@((bool v) => { _settings.NotificationsEnabled = v; _ = OnMasterToggle(v); })"
+                                   Color="Color.Primary" T="bool" />
+                    </div>
+
+                    <MudDivider Style="border-color:#1f1f1f;" />
+
+                    <div class="notification-row @(!_settings.NotificationsEnabled ? "disabled" : "")">
+                        <div>
+                            <div style="font-size:14px; color:#ddd; font-weight:500;">
+                                Напоминания о дедлайнах
+                            </div>
+                            <div style="font-size:12px; color:#555; margin-top:2px;">
+                                За 48 и 24 часа до истечения дедлайна
+                            </div>
+                        </div>
+                        <MudSwitch Value="_settings.DeadlineNotificationsEnabled"
+                                   ValueChanged="@((bool v) => { _settings.DeadlineNotificationsEnabled = v; _ = OnSettingChange(); })"
+                                   Color="Color.Primary" T="bool"
+                                   Disabled="!_settings.NotificationsEnabled" />
+                    </div>
+
+                    <div class="notification-row @(!_settings.NotificationsEnabled ? "disabled" : "")">
+                        <div>
+                            <div style="font-size:14px; color:#ddd; font-weight:500;">
+                                Сообщения в чатах
+                            </div>
+                            <div style="font-size:12px; color:#555; margin-top:2px;">
+                                Новые сообщения в проектных чатах и чатах задач
+                            </div>
+                        </div>
+                        <MudSwitch Value="_settings.MessageNotificationsEnabled"
+                                   ValueChanged="@((bool v) => { _settings.MessageNotificationsEnabled = v; _ = OnSettingChange(); })"
+                                   Color="Color.Primary" T="bool"
+                                   Disabled="!_settings.NotificationsEnabled" />
+                    </div>
+
+                </div>
+            }
+        </div>
+
+        <MudDivider Style="border-color:#2a2a2a; margin:8px 0;" />
+
+        <!-- Удаление аккаунта -->
+        <div class="profile-section">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:8px;">
+                Удаление аккаунта
+            </MudText>
+            <MudText Typo="Typo.body2"
+                     Style="color:#555; margin-bottom:16px; line-height:1.6;">
+                Это действие необратимо. Все ваши проекты, задачи и сообщения будут удалены.
+            </MudText>
+
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.DeleteForever"
+                       OnClick="ConfirmDelete"
+                       Style="border-radius:10px; text-transform:none; font-weight:600;
+                              border-color:#ef4444; color:#ef4444;">
+                Удалить аккаунт
+            </MudButton>
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    private UserProfileResponse? _profile;
+    private NotificationSettings? _settings;
+    private bool _savingPassword;
+    private bool _savingSettings;
+    private string? _passwordError;
+    private bool _uploadingAvatar = false;
+
+    private readonly ChangePasswordRequest _passwordModel = new();
+
+    private class NotificationSettings
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool NotificationsEnabled { get; set; }
+        public bool DeadlineNotificationsEnabled { get; set; }
+        public bool MessageNotificationsEnabled { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _profile = await ProfileService.GetProfileAsync();
+            _settings = new NotificationSettings
+            {
+                Name                         = _profile.Name,
+                NotificationsEnabled         = _profile.NotificationsEnabled,
+                DeadlineNotificationsEnabled = _profile.DeadlineNotificationsEnabled,
+                MessageNotificationsEnabled  = _profile.MessageNotificationsEnabled
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки профиля: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnAvatarChanged(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _uploadingAvatar = true;
+        try
+        {
+            var url = await FileService.UploadAvatarAsync(file);
+            if (_profile is not null)
+                _profile.AvatarUrl = url;
+            Snackbar.Add("Аватар обновлён", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+        finally { _uploadingAvatar = false; }
+    }
+
+    private async Task ChangePassword()
+    {
+        _passwordError = null;
+        _savingPassword = true;
+        try
+        {
+            await ProfileService.ChangePasswordAsync(_passwordModel);
+            Snackbar.Add("Пароль успешно изменён", Severity.Success);
+            _passwordModel.CurrentPassword = string.Empty;
+            _passwordModel.NewPassword     = string.Empty;
+            _passwordModel.ConfirmPassword = string.Empty;
+        }
+        catch (Exception ex) { _passwordError = ex.Message; }
+        finally { _savingPassword = false; }
+    }
+
+    private async Task SaveSettings()
+    {
+        if (_settings is null) return;
+        _savingSettings = true;
+        try
+        {
+            await ProfileService.UpdateSettingsAsync(new UpdateUserSettingsRequest
+            {
+                Name                         = _settings.Name,
+                NotificationsEnabled         = _settings.NotificationsEnabled,
+                DeadlineNotificationsEnabled = _settings.DeadlineNotificationsEnabled,
+                MessageNotificationsEnabled  = _settings.MessageNotificationsEnabled
+            });
+
+            if (_profile is not null)
+                _profile.Name = _settings.Name;
+
+            Snackbar.Add("Сохранено", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error); }
+        finally { _savingSettings = false; }
+    }
+
+    private async Task OnMasterToggle(bool value)
+    {
+        if (_settings is null) return;
+        _settings.NotificationsEnabled = value;
+        await SaveNotificationSettings();
+    }
+
+    private async Task OnSettingChange() => await SaveNotificationSettings();
+
+    private async Task SaveNotificationSettings()
+    {
+        if (_settings is null) return;
+        try
+        {
+            await ProfileService.UpdateSettingsAsync(new UpdateUserSettingsRequest
+            {
+                Name                         = _settings.Name,
+                NotificationsEnabled         = _settings.NotificationsEnabled,
+                DeadlineNotificationsEnabled = _settings.DeadlineNotificationsEnabled,
+                MessageNotificationsEnabled  = _settings.MessageNotificationsEnabled
+            });
+            Snackbar.Add("Настройки сохранены", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Title,   "Удалить аккаунт?" },
+            { x => x.Message, "Это действие необратимо. Все ваши данные будут удалены навсегда." },
+            { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
+                {
+                    await ProfileService.DeleteAccountAsync();
+                    var auth = (CustomAuthenticationStateProvider)AuthStateProvider;
+                    await auth.UpdateAuthenticationState(new UserSession());
+                    NavManager.NavigateTo("/identity/account/login");
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+    }
+
+    private string GetInitials(string name)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length >= 2
+            ? $"{words[0][0]}{words[1][0]}".ToUpper()
+            : name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+}

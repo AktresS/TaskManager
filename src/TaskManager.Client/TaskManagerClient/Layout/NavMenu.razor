@@ -1,7 +1,10 @@
-﻿<MudDrawerHeader Style="padding: 20px 16px 12px;">
-    <MudText Typo="Typo.subtitle2" Style="color:#555; font-weight:600; letter-spacing:1px; text-transform:uppercase; font-size:11px;">
-        Navigation
-    </MudText>
+﻿<MudDrawerHeader Style="padding: 12px 8px;">
+    <MudNavLink Href="/profile"
+                Match="NavLinkMatch.All"
+                Icon="@Icons.Material.Filled.AccountCircle"
+                Style="border-radius:10px;">
+        Профиль
+    </MudNavLink>
 </MudDrawerHeader>
 
 <MudNavMenu Style="padding: 0 8px;">
@@ -20,10 +23,44 @@
         Проекты
     </MudNavLink>
 
+    <MudNavLink Href="/chats"
+            Match="NavLinkMatch.All"
+            Icon="@Icons.Material.Filled.Forum"
+            Style="border-radius:10px; margin-bottom:2px;">
+        Чаты
+    </MudNavLink>
+
+    @if (pinnedProjects.Count > 0)
+    {
+        <div style="margin-top:16px; padding-top:12px; border-top:1px solid #1e1e1e;">
+            <MudText Typo="Typo.caption"
+                     Style="color:#555; font-weight:600; letter-spacing:1px; text-transform:uppercase; font-size:11px; padding: 0 8px; display:block; margin-bottom:4px;">
+                Закреплённые
+            </MudText>
+
+            @foreach (var project in pinnedProjects)
+            {
+                <MudNavLink Href="@($"/projects/{project.ProjectId}/board")"
+                            Match="NavLinkMatch.All"
+                            Style="border-radius:10px; margin-bottom:2px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="width:22px; height:22px; border-radius:6px; background:@GetProjectColor(project.ProjectId);
+                                    display:flex; align-items:center; justify-content:center;
+                                    font-size:9px; font-weight:700; color:white; flex-shrink:0;">
+                            @GetInitials(project.Name)
+                        </div>
+                        <span style="font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            @project.Name
+                        </span>
+                    </div>
+                </MudNavLink>
+            }
+        </div>
+    }
+
 </MudNavMenu>
 
 <style>
-    /* Активная ссылка */
     .mud-nav-link.active {
         background: rgba(124, 106, 247, 0.15) !important;
         color: #7c6af7 !important;
@@ -31,8 +68,6 @@
     .mud-nav-link.active .mud-nav-link-icon {
         color: #7c6af7 !important;
     }
-
-    /* Обычная ссылка */
     .mud-nav-link {
         color: #888 !important;
         font-size: 14px !important;
@@ -49,3 +84,53 @@
         color: #555 !important;
     }
 </style>
+
+@code {
+    private List<ProjectResponse> pinnedProjects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+            await LoadPinned();
+
+        PinStateService.OnChanged += HandlePinChanged;
+    }
+
+    private async Task LoadPinned()
+    {
+        try
+        {
+            var all = await ProjectService.GetUserProjectsAsync();
+            pinnedProjects = all.Where(x => x.IsPinned).ToList();
+        }
+        catch { pinnedProjects = new(); }
+    }
+
+    private async void HandlePinChanged()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+            await LoadPinned();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => PinStateService.OnChanged -= HandlePinChanged;
+
+    private static readonly string[] _colors =
+    {
+        "#5b4fcf", "#2563eb", "#0891b2", "#059669",
+        "#d97706", "#dc2626", "#7c3aed", "#db2777"
+    };
+
+    private string GetProjectColor(int id) => _colors[id % _colors.Length];
+
+    private string GetInitials(string name)
+    {
+        var words = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length >= 2
+            ? $"{words[0][0]}{words[1][0]}".ToUpper()
+            : name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+}

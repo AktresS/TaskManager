@@ -1,18 +1,24 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Scalar.AspNetCore;
+using Microsoft.OpenApi.Models;
+using TaskManager.Cloud;
 using TaskManager.Data;
+using TaskManager.Hubs;
 using TaskManager.Security;
 using TaskManager.Services.Auth;
 using TaskManager.Services.Boards;
 using TaskManager.Services.Columns;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.Files;
+using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 using TaskManager.Services.ProjectMembers;
 using TaskManager.Services.ProjectMessages;
 using TaskManager.Services.Projects;
+using TaskManager.Services.UserProfile;
 using TaskManager.Services.WorkItemAssignees;
 using TaskManager.Services.WorkItemMessages;
 using TaskManager.Services.WorkItems;
@@ -25,6 +31,12 @@ builder.Services.AddDbContext<AppDbContext>(options => options
 builder.Services.AddControllers();
 
 builder.Services.AddHttpContextAccessor(); 
+
+builder.Services.AddHostedService<DeadlineCheckerService>();
+builder.Services.AddSignalR();
+
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection("Cloudinary"));
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -39,6 +51,12 @@ builder.Services.AddScoped<IWorkItemAssigneeService, WorkItemAssigneeService>();
 builder.Services.AddScoped<IWorkItemMessageService, WorkItemMessageService>();
 builder.Services.AddScoped<IBoardService, BoardService>();
 builder.Services.AddScoped<IColumnService, ColumnService>();
+builder.Services.AddScoped<INotificationSender, NotificationSender>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IFileService, FileService>();
+
+builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -59,6 +77,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding
                 .UTF8.GetBytes(jwtOptions.SecretKey))
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddCors(options =>
 {
@@ -69,14 +104,44 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowCredentials());
 });
-builder.Services.AddOpenApi();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+                Reference = new OpenApiReference
+                {
+                    Id = "Bearer",
+                    Type = ReferenceType.SecurityScheme
+                }
+            },
+            new List<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
@@ -85,5 +150,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();

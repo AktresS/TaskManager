@@ -47,6 +47,18 @@ public class ProjectService(GetHttpClient getHttpClient) : IProjectService
         return JsonSerializer.Deserialize<ProjectResponse>(content,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
     }
+
+    public async Task<bool> TogglePinAsync(int projectId)
+    {
+        var client = await getHttpClient.GetPrivateHttpClient();
+        var result = await client.PostAsync($"{BaseUrl}/{projectId}/pin", null);
+
+        var content = await result.Content.ReadAsStringAsync();
+        if (!result.IsSuccessStatusCode)
+            throw new Exception(content);
+
+        return JsonSerializer.Deserialize<bool>(content);
+    }
     
     public async Task DeleteAsync(int id)
     {

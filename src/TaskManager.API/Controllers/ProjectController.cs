@@ -46,6 +46,13 @@ namespace TaskManager.Controllers
             return Ok(project);
         }
 
+        [HttpPost("{id}/pin")]
+        public async Task<ActionResult<bool>> TogglePin(int id)
+        {
+            var isPinned = await projectService.TogglePinAsync(id);
+            return Ok(isPinned);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

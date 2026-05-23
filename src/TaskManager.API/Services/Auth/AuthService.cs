@@ -30,6 +30,11 @@ public class AuthService(IOptions<JwtOptions> config, AppDbContext context) : IA
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Password)
         });
 
+        await AddToDatabase(new UserSettings
+        {
+            UserId = applicationUser.UserId
+        });
+
         return new GeneralResponse(true, "Account created!");
     }
 

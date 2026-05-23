@@ -69,6 +69,46 @@ namespace TaskManager.Data.Migrations
                     b.ToTable("BoardColumns");
                 });
 
+            modelBuilder.Entity("TaskManager.Models.Notification", b =>
+                {
+                    b.Property<int>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("TaskManager.Models.Project", b =>
                 {
                     b.Property<int>("ProjectId")
@@ -139,6 +179,10 @@ namespace TaskManager.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProjectMessageId"));
+
+                    b.Property<string>("AttachmentName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("AttachmentUrl")
                         .HasMaxLength(500)
@@ -230,6 +274,58 @@ namespace TaskManager.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("TaskManager.Models.UserPinnedProject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("UserId", "ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("PinnedProjects");
+                });
+
+            modelBuilder.Entity("TaskManager.Models.UserSettings", b =>
+                {
+                    b.Property<int>("UserSettingsId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserSettingsId"));
+
+                    b.Property<bool>("DeadlineNotificationsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("MessageNotificationsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotificationsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserSettingsId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserSettings");
+                });
+
             modelBuilder.Entity("TaskManager.Models.WorkItem", b =>
                 {
                     b.Property<int>("WorkItemId")
@@ -241,7 +337,7 @@ namespace TaskManager.Data.Migrations
                     b.Property<int?>("ColumnId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("CreatedById")
+                    b.Property<int?>("CreatedById")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedDate")
@@ -260,6 +356,9 @@ namespace TaskManager.Data.Migrations
 
                     b.Property<int?>("ProjectId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -320,6 +419,10 @@ namespace TaskManager.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WorkItemMessageId"));
 
+                    b.Property<string>("AttachmentName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("AttachmentUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -370,6 +473,17 @@ namespace TaskManager.Data.Migrations
                     b.Navigation("Board");
                 });
 
+            modelBuilder.Entity("TaskManager.Models.Notification", b =>
+                {
+                    b.HasOne("TaskManager.Models.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskManager.Models.Project", b =>
                 {
                     b.HasOne("TaskManager.Models.User", "CreatedBy")
@@ -392,7 +506,7 @@ namespace TaskManager.Data.Migrations
                     b.HasOne("TaskManager.Models.User", "User")
                         .WithMany("ProjectMemberships")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
@@ -411,7 +525,7 @@ namespace TaskManager.Data.Migrations
                     b.HasOne("TaskManager.Models.User", "User")
                         .WithMany("ProjectMessages")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
@@ -430,6 +544,36 @@ namespace TaskManager.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TaskManager.Models.UserPinnedProject", b =>
+                {
+                    b.HasOne("TaskManager.Models.Project", "Project")
+                        .WithMany("PinnedByUsers")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskManager.Models.User", "User")
+                        .WithMany("PinnedProjects")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TaskManager.Models.UserSettings", b =>
+                {
+                    b.HasOne("TaskManager.Models.User", "User")
+                        .WithOne("Settings")
+                        .HasForeignKey("TaskManager.Models.UserSettings", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskManager.Models.WorkItem", b =>
                 {
                     b.HasOne("TaskManager.Models.BoardColumn", "Column")
@@ -440,8 +584,7 @@ namespace TaskManager.Data.Migrations
                     b.HasOne("TaskManager.Models.User", "CreatedBy")
                         .WithMany("CreatedWorkItems")
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("TaskManager.Models.Project", "Project")
                         .WithMany("WorkItems")
@@ -460,7 +603,7 @@ namespace TaskManager.Data.Migrations
                     b.HasOne("TaskManager.Models.User", "User")
                         .WithMany("AssignedWorkItems")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TaskManager.Models.WorkItem", "WorkItem")
@@ -479,7 +622,7 @@ namespace TaskManager.Data.Migrations
                     b.HasOne("TaskManager.Models.User", "User")
                         .WithMany("WorkItemMessages")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("TaskManager.Models.WorkItem", "WorkItem")
@@ -511,6 +654,8 @@ namespace TaskManager.Data.Migrations
 
                     b.Navigation("Messages");
 
+                    b.Navigation("PinnedByUsers");
+
                     b.Navigation("WorkItems");
                 });
 
@@ -522,11 +667,17 @@ namespace TaskManager.Data.Migrations
 
                     b.Navigation("CreatedWorkItems");
 
+                    b.Navigation("Notifications");
+
+                    b.Navigation("PinnedProjects");
+
                     b.Navigation("ProjectMemberships");
 
                     b.Navigation("ProjectMessages");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("Settings");
 
                     b.Navigation("WorkItemMessages");
                 });

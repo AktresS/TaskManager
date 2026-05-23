@@ -126,6 +126,7 @@
     private string GetStateColor(TaskState? s) => s switch
     {
         TaskState.InProgress => "#7c6af7",
+        TaskState.OnHold => "#f59e0b",
         TaskState.Completed  => "#22c55e",
         _                    => "#555"
     };
@@ -134,6 +135,7 @@
     {
         TaskState.New        => "Новая",
         TaskState.InProgress => "В работе",
+        TaskState.OnHold     => "Приостановлена",
         TaskState.Completed  => "Завершена",
         _                    => s?.ToString() ?? "—"
     };

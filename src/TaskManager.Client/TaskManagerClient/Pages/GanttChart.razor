@@ -1,0 +1,325 @@
+﻿@page "/projects/{ProjectId:int}/gantt"
+@attribute [Authorize]
+
+<PageTitle>Диаграмма Ганта</PageTitle>
+
+<div class="gantt-header">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       Size="Size.Small"
+                       Style="color:#555;"
+                       OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/board")' />
+        <div>
+            <MudText Typo="Typo.h5" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.3px;">
+                @(_projectName ?? "Диаграмма Ганта")
+            </MudText>
+            <MudText Typo="Typo.body2" Style="color:#555; margin-top:2px;">
+                @_tasks.Count задач
+            </MudText>
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        @foreach (var f in _filters)
+        {
+            <button class="gantt-filter @(_activeFilter == f.Key ? "active" : "")"
+                    @onclick="() => _activeFilter = f.Key">
+                @f.Label
+            </button>
+        }
+
+        <div style="display:flex; align-items:center; gap:4px; margin-left:8px;">
+            <MudIconButton Icon="@Icons.Material.Filled.ZoomOut"
+                           Size="Size.Small" Style="color:#555;"
+                           OnClick="() => ZoomOut()" />
+            <MudText Typo="Typo.caption" Style="color:#555; min-width:32px; text-align:center;">
+                @_dayWidth px
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ZoomIn"
+                           Size="Size.Small" Style="color:#555;"
+                           OnClick="() => ZoomIn()" />
+        </div>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+        @for (int i = 0; i < 6; i++)
+        {
+            <div class="gantt-skeleton"></div>
+        }
+    </div>
+}
+else if (!FilteredTasks.Any())
+{
+    <div class="gantt-empty">
+        <MudIcon Icon="@Icons.Material.Outlined.BarChart" Style="font-size:48px; color:#2a2a2a;" />
+        <MudText Typo="Typo.body1" Style="color:#444; margin-top:16px;">Нет задач для отображения</MudText>
+    </div>
+}
+else
+{
+    <div class="gantt-wrapper">
+
+        <div class="gantt-labels">
+
+            <div class="gantt-labels-header">
+                <span>Задача</span>
+            </div>
+
+            @foreach (var task in FilteredTasks)
+            {
+                <div class="gantt-label-row" title="@task.Title">
+                    <div class="priority-dot @GetPriorityDot(task.Priority)"></div>
+                    <span class="gantt-label-text">@task.Title</span>
+                    <span class="gantt-label-state @GetStatePill(task.State)">
+                        @GetStateLabel(task.State)
+                    </span>
+                </div>
+            }
+
+        </div>
+
+        <div class="gantt-timeline-wrap" @ref="_timelineRef">
+
+            <div class="gantt-timeline-header" style="width:@(TotalWidth)px;">
+                @foreach (var day in _days)
+                {
+                    <div class="gantt-day-header @(IsToday(day) ? "today" : "") @(IsWeekend(day) ? "weekend" : "")"
+                         style="width:@(_dayWidth)px;">
+                        @if (day.Day == 1 || day == _days.First())
+                        {
+                            <span class="day-month">@day.ToString("MMM")</span>
+                        }
+                        <span class="day-num">@day.Day</span>
+                    </div>
+                }
+            </div>
+
+            <div class="gantt-grid" style="width:@(TotalWidth)px;">
+
+                @foreach (var day in _days)
+                {
+                    <div class="gantt-grid-line @(IsToday(day) ? "today-line" : "") @(IsWeekend(day) ? "weekend-line" : "")"
+                         style="left:@(GetDayOffset(day))px;"></div>
+                }
+
+                @foreach (var (task, index) in FilteredTasks.Select((t, i) => (t, i)))
+                {
+                    var bar = GetBarMetrics(task);
+
+                    <div class="gantt-row" style="top:@(index * RowHeight)px;">
+
+                        @if (bar != null)
+                        {
+                            <div class="gantt-bar @GetBarClass(task)"
+                                style="left:@(bar.Left)px; width:@(bar.Width)px;"
+                                title="@task.Title: @FormatDate(bar.Start) — @FormatDate(bar.End)">
+
+                                @if (task.State == TaskState.Completed)
+                                {
+                                    <div class="gantt-bar-progress" style="width:100%;"></div>
+                                }
+                                else if (task.State == TaskState.InProgress)
+                                {
+                                    var progress = GetProgress(bar.Start, bar.End);
+
+                                    <div class="gantt-bar-progress"
+                                        style="width:@(progress)%;"></div>
+                                }
+
+                                <span class="gantt-bar-label">@task.Title</span>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+                <div class="gantt-today-line"
+                     style="left:@(GetDayOffset(DateTime.Today))px; height:@(FilteredTasks.Count * RowHeight)px;">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="gantt-legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#7c6af7;"></div>
+            <span>В работе</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#f59e0b;"></div>
+            <span>Приостановлена</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#22c55e;"></div>
+            <span>Завершена</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#444;"></div>
+            <span>Новая</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#ef4444;"></div>
+            <span>Просрочена</span>
+        </div>
+        <div class="legend-item" style="margin-left:16px;">
+            <div style="width:2px; height:14px; background:#7c6af7; opacity:0.6;"></div>
+            <span>Сегодня</span>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int ProjectId { get; set; }
+
+    private List<WorkItemResponse> _tasks = new();
+    private string? _projectName;
+    private bool _loading = true;
+    private string _activeFilter = "all";
+    private int _dayWidth = 32;
+    private const int RowHeight = 48;
+
+    private List<DateTime> _days = new();
+    private DateTime _rangeStart;
+    private DateTime _rangeEnd;
+
+    private ElementReference _timelineRef;
+
+    private record FilterItem(string Key, string Label);
+    private readonly List<FilterItem> _filters = new()
+    {
+        new("all",        "Все"),
+        new("new",        "Новые"),
+        new("inprogress", "В работе"),
+        new("onhold",     "Приостановленные"),
+        new("done",       "Завершённые"),
+        new("overdue",    "Просроченные"),
+    };
+
+    private List<WorkItemResponse> FilteredTasks => _tasks.Where(t => _activeFilter switch
+    {
+        "new"        => t.State == TaskState.New,
+        "inprogress" => t.State == TaskState.InProgress,
+        "done"       => t.State == TaskState.Completed,
+        "onhold" => t.State == TaskState.OnHold,
+        "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
+        _            => true
+    }).OrderBy(t => t.StartDate ?? t.CreatedDate).ToList();
+
+    private int TotalWidth => _days.Count * _dayWidth;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var projectTask = ProjectService.GetByIdAsync(ProjectId);
+            var tasksTask   = TaskService.GetProjectAsync(ProjectId);
+            await System.Threading.Tasks.Task.WhenAll(projectTask, tasksTask);
+
+            _projectName = projectTask.Result?.Name;
+            _tasks       = tasksTask.Result ?? new();
+
+            BuildDateRange();
+        }
+        finally { _loading = false; }
+    }
+
+    private void BuildDateRange()
+    {
+        if (!_tasks.Any())
+        {
+            _rangeStart = DateTime.Today.AddDays(-7);
+            _rangeEnd   = DateTime.Today.AddDays(30);
+        }
+        else
+        {
+            var starts = _tasks.Select(t => t.StartDate ?? t.CreatedDate).Min();
+            var ends   = _tasks.Select(t => t.DeadLine).Max();
+
+            _rangeStart = starts!.Value.Date.AddDays(-3);
+            _rangeEnd   = ends.Date.AddDays(3);
+        }
+
+        _days = Enumerable
+            .Range(0, (_rangeEnd - _rangeStart).Days + 1)
+            .Select(i => _rangeStart.AddDays(i))
+            .ToList();
+    }
+
+
+    private record BarMetrics(double Left, double Width, DateTime Start, DateTime End);
+
+    private BarMetrics? GetBarMetrics(WorkItemResponse task)
+    {
+        var start = (task.StartDate ?? task.CreatedDate)!.Value;
+        var end   = task.DeadLine.Date;
+
+        if (end < _rangeStart || start > _rangeEnd) return null;
+
+        var clampedStart = start < _rangeStart ? _rangeStart : start;
+        var clampedEnd   = end > _rangeEnd ? _rangeEnd : end;
+
+        var left  = (clampedStart - _rangeStart).Days * _dayWidth;
+        var width = Math.Max(((clampedEnd - clampedStart).Days + 1) * _dayWidth, _dayWidth);
+
+        return new BarMetrics(left, width, start, end);
+    }
+
+    private int GetDayOffset(DateTime day) => (day.Date - _rangeStart).Days * _dayWidth;
+
+    private double GetProgress(DateTime start, DateTime end)
+    {
+        var total   = (end - start).TotalDays;
+        var elapsed = (DateTime.Now - start).TotalDays;
+        if (total <= 0) return 100;
+        return Math.Min(100, Math.Max(0, elapsed / total * 100));
+    }
+
+    private void ZoomIn()  => _dayWidth = Math.Min(_dayWidth + 8, 80);
+    private void ZoomOut() => _dayWidth = Math.Max(_dayWidth - 8, 16);
+
+    private bool IsToday(DateTime day) => day.Date == DateTime.Today;
+    private bool IsWeekend(DateTime day) => day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+
+    private string GetBarClass(WorkItemResponse task)
+    {
+        if (task.State == TaskState.Completed) return "bar-done";
+        if (task.DeadLine < DateTime.Now)      return "bar-overdue";
+        if (task.State == TaskState.InProgress) return "bar-inprogress";
+        if (task.State == TaskState.OnHold)     return "bar-onhold";
+        return "bar-new";
+    }
+
+    private string GetPriorityDot(TaskPriority p) => p switch
+    {
+        TaskPriority.High   => "dot-red",
+        TaskPriority.Medium => "dot-yellow",
+        TaskPriority.Low    => "dot-green",
+        _                   => "dot-gray"
+    };
+
+    private string GetStatePill(TaskState s) => s switch
+    {
+        TaskState.InProgress => "pill-inprogress",
+        TaskState.OnHold     => "pill-onhold",
+        TaskState.Completed  => "pill-done",
+        _                    => "pill-new"
+    };
+
+    private string GetStateLabel(TaskState s) => s switch
+    {
+        TaskState.New        => "Новая",
+        TaskState.InProgress => "В работе",
+        TaskState.OnHold     => "Приостановлена",
+        TaskState.Completed  => "Готово",
+        _                    => "—"
+    };
+
+    private string FormatDate(DateTime d) => d.ToString("dd.MM.yyyy");
+}

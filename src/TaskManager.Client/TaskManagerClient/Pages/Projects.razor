@@ -3,7 +3,6 @@
 
 <PageTitle>Проекты</PageTitle>
 
-<!-- Хедер -->
 <div class="projects-header">
     <div>
         <MudText Typo="Typo.h4" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.5px;">
@@ -23,7 +22,6 @@
     </MudButton>
 </div>
 
-<!-- Загрузка -->
 @if (isLoading)
 {
     <div class="projects-grid">
@@ -39,7 +37,6 @@ else if (!string.IsNullOrEmpty(error))
 }
 else if (projects is null || projects.Count == 0)
 {
-    <!-- Пустое состояние -->
     <div class="empty-state">
         <div class="empty-icon">
             <MudIcon Icon="@Icons.Material.Outlined.FolderOpen"
@@ -66,12 +63,10 @@ else
         {
             <div class="project-card" @onclick="() => GoToBoard(project.ProjectId)">
 
-                <!-- Верх карточки — цветная шапка -->
                 <div class="project-card-header" style="background:@GetProjectColor(project.ProjectId);">
                     <div class="project-initials">@GetInitials(project.Name)</div>
                 </div>
 
-                <!-- Тело карточки -->
                 <div class="project-card-body">
                     <div class="project-name">@project.Name</div>
 
@@ -89,7 +84,6 @@ else
                     </div>
                 </div>
 
-                <!-- Нижняя панель с кнопками -->
                 <div class="project-card-footer" @onclick:stopPropagation="true">
                     <MudButton Variant="Variant.Text"
                                StartIcon="@Icons.Material.Filled.Dashboard"
@@ -100,6 +94,22 @@ else
                     </MudButton>
 
                     <div style="display:flex; gap:4px;">
+                        <MudTooltip Text="@(project.IsPinned ? "Открепить" : "Закрепить")">
+                            <MudIconButton
+                                Icon="@(project.IsPinned
+                                    ? Icons.Material.Filled.PushPin
+                                    : Icons.Material.Outlined.PushPin)"
+                                Size="Size.Small"
+                                Style="@(project.IsPinned ? "color:#f59e0b;" : "color:#444;")"
+                                OnClick="() => TogglePin(project)" />
+                        </MudTooltip>
+                        <MudTooltip Text="Участники">
+                            <MudIconButton Icon="@Icons.Material.Filled.Group"
+                                        Size="Size.Small"
+                                        Style="color:#444;"
+                                        OnClick="() => OpenMembersModal(project)" />
+                        </MudTooltip>
+
                         <MudTooltip Text="Редактировать">
                             <MudIconButton Icon="@Icons.Material.Filled.EditNote"
                                            Size="Size.Small"
@@ -120,7 +130,6 @@ else
     </div>
 }
 
-
 @code {
     private List<ProjectResponse>? projects;
     private bool isLoading = true;
@@ -139,7 +148,6 @@ else
 
     private void GoToBoard(int id) => NavManager.NavigateTo($"/projects/{id}/board");
 
-    // ── Создание ──
     private async Task OpenCreateModal()
     {
         var options = new DialogOptions
@@ -164,7 +172,22 @@ else
         await LoadProjects();
     }
 
-    // ── Редактирование ──
+    private async Task OpenMembersModal(ProjectResponse project)
+    {
+        var parameters = new DialogParameters<ManageMembersModal>
+        {
+            { x => x.ProjectId, project.ProjectId }
+        };
+
+        await DialogService.ShowAsync<ManageMembersModal>("", parameters,
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            });
+    }
+
     private async Task OpenEditModal(ProjectResponse project)
     {
         var options = new DialogOptions
@@ -190,7 +213,13 @@ else
         await LoadProjects();
     }
 
-    // ── Удаление ──
+    private async Task TogglePin(ProjectResponse project)
+    {
+        project.IsPinned = await ProjectService.TogglePinAsync(project.ProjectId);
+        PinStateService.NotifyChanged();
+        StateHasChanged();
+    }
+
     private async Task ConfirmDelete(ProjectResponse project)
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };

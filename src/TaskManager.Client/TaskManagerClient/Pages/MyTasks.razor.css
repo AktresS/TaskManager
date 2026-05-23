@@ -1,4 +1,3 @@
-/* ── Хедер ── */
 .tasks-header {
     display: flex;
     align-items: center;
@@ -6,7 +5,6 @@
     margin-bottom: 28px;
 }
 
-/* ── Фильтры ── */
 .filter-row {
     display: flex;
     gap: 8px;
@@ -54,14 +52,12 @@
     color: #7c6af7;
 }
 
-/* ── Сетка карточек ── */
 .tasks-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 12px;
 }
 
-/* ── Карточка задачи ── */
 .task-card {
     background: #1a1a1a;
     border: 1px solid #242424;
@@ -95,7 +91,6 @@
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
-/* ── Верх карточки ── */
 .task-card-top {
     display: flex;
     align-items: center;
@@ -112,7 +107,6 @@
 .priority-dot.dot-green  { background: #22c55e; box-shadow: 0 0 6px #22c55e66; }
 .priority-dot.dot-gray   { background: #555; }
 
-/* ── Пилюля статуса ── */
 .state-pill {
     font-size: 11px;
     font-weight: 600;
@@ -122,9 +116,9 @@
 }
 .pill-new        { background: #1f1f1f; color: #555; border: 1px solid #2e2e2e; }
 .pill-inprogress { background: rgba(124,106,247,0.12); color: #7c6af7; border: 1px solid rgba(124,106,247,0.25); }
+.pill-onhold { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
 .pill-done       { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
 
-/* ── Текст ── */
 .task-title {
     font-size: 15px;
     font-weight: 600;
@@ -150,7 +144,6 @@
     color: #444;
 }
 
-/* ── Нижняя строка ── */
 .task-card-bottom {
     display: flex;
     align-items: center;
@@ -171,7 +164,6 @@
 .deadline.soon     { color: #f59e0b; }
 .deadline.normal   { color: #555; }
 
-/* ── Аватарки исполнителей ── */
 .assignees {
     display: flex;
     margin-left: auto;
@@ -191,6 +183,8 @@
     justify-content: center;
     margin-left: -6px;
     text-transform: uppercase;
+    overflow: hidden; 
+    flex-shrink: 0; 
 }
 
 .avatar-chip.more { color: #555; font-size: 10px; }
@@ -204,7 +198,6 @@
 
 .task-card:hover .task-actions { opacity: 1; }
 
-/* ── Скелетон загрузки ── */
 .loading-state {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -226,7 +219,6 @@
     100% { background-position: -200% 0; }
 }
 
-/* ── Пустое состояние ── */
 .empty-state {
     display: flex;
     flex-direction: column;

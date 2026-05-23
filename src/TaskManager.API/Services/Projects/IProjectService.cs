@@ -9,5 +9,6 @@ public interface IProjectService
     Task<ProjectResponse> UpdateAsync(int id, UpdateProjectRequest request);
     Task<List<ProjectResponse>> GetUserProjectsAsync();
     Task<ProjectResponse?> GetByIdAsync(int id);
+    Task<bool> TogglePinAsync(int projectId);
     Task DeleteAsync(int id);
 }

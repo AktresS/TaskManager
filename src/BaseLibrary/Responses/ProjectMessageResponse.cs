@@ -7,7 +7,9 @@ public class ProjectMessageResponse
     public string UserName { get; set; } = null!;
     public int ProjectId { get; set; }
     public string ProjectName { get; set; } = null!;
+    public string? AvatarUrl { get; set; }
     public string? Text { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string? AttachmentName { get; set; }
     public DateTime SentDate { get; set; } = DateTime.UtcNow;
 }

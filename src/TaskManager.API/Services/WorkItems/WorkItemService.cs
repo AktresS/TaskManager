@@ -20,6 +20,7 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             Description = request.Description,
             Priority = request.Priority,
             DeadLine = DateTime.SpecifyKind(request.DeadLine, DateTimeKind.Utc),
+            CreatedDate = DateTime.UtcNow,
             CreatedById = currentUser.UserId,
             ProjectId = null
         };
@@ -158,25 +159,29 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             Description = item.Description,
             Priority = item.Priority,
             State = item.State,
+            CreatedDate = item.CreatedDate,
             DeadLine = item.DeadLine,
+            StartDate = item.StartDate,
             ProjectId = item.ProjectId,
             ProjectName = item.Project?.Name,
             ColumnId = item.ColumnId,
-            CreatedById = item.CreatedById,
-            CreatedByName = item.CreatedBy.Name,
+            CreatedById = item.CreatedById ?? 0,
+            CreatedByName = item.CreatedBy?.Name ?? "Удалённый пользователь",
             Assignees = item.ProjectId == null 
                 ? new List<UserShortDto>
                 {
                     new UserShortDto
                     {
-                        Id = item.CreatedById,
-                        Name = item.CreatedBy.Name
+                        Id = item.CreatedById ?? 0,
+                        Name = item.CreatedBy?.Name ?? "Удалённый пользователь",
+                        AvatarUrl = item.CreatedBy?.AvatarUrl
                     }
                 } 
                 : item.Assignees.Select(a => new UserShortDto
                 {
                     Id = a.UserId,
-                    Name = a.User.Name
+                    Name = a.User.Name,
+                    AvatarUrl = a.User.AvatarUrl 
                 }).ToList()
         };
     }
@@ -218,6 +223,13 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
         
         if (request.State.HasValue)
             item.State = request.State.Value;
+
+        if (request.State.HasValue)
+        {
+            item.State = request.State.Value;
+            if (request.State.Value == TaskState.InProgress && item.StartDate == null)
+                item.StartDate = DateTime.UtcNow;
+        }
 
         if (request.DeadLine.HasValue)
             item.DeadLine = DateTime.SpecifyKind(request.DeadLine.Value, DateTimeKind.Utc);

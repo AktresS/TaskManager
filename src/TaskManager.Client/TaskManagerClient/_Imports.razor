@@ -24,7 +24,11 @@
 @using BaseLibrary.DTOs.ColumnDtos
 @using BaseLibrary.DTOs.ProjectDtos
 @using BaseLibrary.DTOs.AssigneeDtos
+@using BaseLibrary.DTOs.ProjectMessageDtos
+@using BaseLibrary.DTOs.WorkItemMessageDtos
 @using ClientLibrary.Services.Implementations
+@using BaseLibrary.DTOs.ProjectMemberDtos
+@using BaseLibrary.DTOs.SettingsDtos
 
 @inject IBoardService BoardService
 @inject IColumnService ColumnService
@@ -37,3 +41,13 @@
 @inject IProjectService ProjectService
 @inject IProjectMemberService MemberService
 @inject IWorkItemAssigneeService AssigneeService
+@inject PinStateService PinStateService
+@inject IJSRuntime JSRuntime
+@inject IProjectMessageService ProjectMessageService
+@inject IWorkItemMessageService TaskMessageService
+@inject IUserService UserService
+@inject NotificationService NotificationService
+@inject LocalStorageService LocalStorage
+@inject IUserProfileService ProfileService
+@inject ISnackbar Snackbar
+@inject IFileService FileService

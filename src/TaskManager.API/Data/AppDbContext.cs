@@ -18,6 +18,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<Board> Boards { get; set; }
     public DbSet<BoardColumn> BoardColumns { get; set; }
+    public DbSet<UserPinnedProject> PinnedProjects { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<UserSettings> UserSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +33,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.ApplyConfiguration(new WorkItemMessageConfiguration());
         modelBuilder.ApplyConfiguration(new BoardConfiguration());
         modelBuilder.ApplyConfiguration(new BoardColumnConfiguration());
+        modelBuilder.ApplyConfiguration(new UserPinnedProjectConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
+        modelBuilder.ApplyConfiguration(new UserSettingsConfiguration());
 
         base.OnModelCreating(modelBuilder);
     }
@@ -57,6 +63,26 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
     }
 }
 
+public class UserPinnedProjectConfiguration : IEntityTypeConfiguration<UserPinnedProject>
+{
+    public void Configure(EntityTypeBuilder<UserPinnedProject> builder)
+    {
+        builder.HasKey(x => x.Id);
+
+        builder.HasOne(x => x.User)
+            .WithMany(x => x.PinnedProjects)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Project)
+            .WithMany(x => x.PinnedByUsers)
+            .HasForeignKey(x => x.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => new { x.UserId, x.ProjectId }).IsUnique();
+    }
+}
+
 public class ProjectMemberConfiguration : IEntityTypeConfiguration<ProjectMember>
 {
     public void Configure(EntityTypeBuilder<ProjectMember> builder)
@@ -71,7 +97,7 @@ public class ProjectMemberConfiguration : IEntityTypeConfiguration<ProjectMember
         builder.HasOne(x => x.User)
             .WithMany(x => x.ProjectMemberships)
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(a => new { a.ProjectId, a.UserId }).IsUnique();
     }
@@ -91,7 +117,7 @@ public class ProjectMessageConfiguration : IEntityTypeConfiguration<ProjectMessa
         builder.HasOne(x => x.User)
             .WithMany(x => x.ProjectMessages)
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -109,7 +135,7 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
         builder.HasOne(x => x.CreatedBy)
             .WithMany(x => x.CreatedWorkItems)
             .HasForeignKey(x => x.CreatedById)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(x => x.Column)
             .WithMany(x => x.WorkItems)
@@ -140,7 +166,7 @@ public class WorkItemAssigneeConfiguration : IEntityTypeConfiguration<WorkItemAs
         builder.HasOne(x => x.User)
             .WithMany(x => x.AssignedWorkItems)
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(a => new { a.WorkItemId, a.UserId }).IsUnique();
     }
@@ -160,7 +186,7 @@ public class WorkItemMessageConfiguration : IEntityTypeConfiguration<WorkItemMes
         builder.HasOne(x => x.User)
             .WithMany(x => x.WorkItemMessages)
             .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -200,5 +226,47 @@ public class BoardColumnConfiguration : IEntityTypeConfiguration<BoardColumn>
             .WithMany(x => x.Columns)
             .HasForeignKey(x => x.BoardId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
+{
+    public void Configure(EntityTypeBuilder<Notification> builder)
+    {
+        builder.HasKey(x => x.NotificationId);
+
+        builder.Property(x => x.Text)
+            .IsRequired()
+            .HasMaxLength(300);
+
+        builder.Property(x => x.IsRead)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.Link)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.Type)
+            .HasConversion<string>()
+            .HasMaxLength(50);
+
+        builder.HasOne(x => x.User)
+            .WithMany(x => x.Notifications)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+
+    }
+}
+
+public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
+{
+    public void Configure(EntityTypeBuilder<UserSettings> builder)
+    {
+        builder.HasKey(x => x.UserSettingsId);
+
+        builder.HasOne(x => x.User)
+               .WithOne(x => x.Settings)
+               .HasForeignKey<UserSettings>(x => x.UserId)
+               .OnDelete(DeleteBehavior.Cascade);
     }
 }

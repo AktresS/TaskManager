@@ -10,4 +10,5 @@ public class UpdateWorkItemRequest
     public TaskPriority? Priority { get; set; }
     public TaskState? State { get; set; }
     public DateTime? DeadLine { get; set; }
+    public DateTime? StartDate { get; set; }
 }

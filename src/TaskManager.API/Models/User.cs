@@ -25,23 +25,15 @@ public class User
     [MaxLength(400)]
     public string? AvatarUrl { get; set; }
 
+    public UserSettings? Settings { get; set; }
 
-    //Навигационные свойства
-    //Проекты, созданные пользователем
     public ICollection<Project> CreatedProjects { get; set; } = new List<Project>();
-
-    //Проекты, в которых состоит пользователь
     public ICollection<ProjectMember> ProjectMemberships { get; set; } = new List<ProjectMember>();
-
-    //Задачи, созданные пользователем
     public ICollection<WorkItem> CreatedWorkItems { get; set; } = new List<WorkItem>();
-
-    //Задачи, назначенные пользователю
     public ICollection<WorkItemAssignee> AssignedWorkItems { get; set; } = new List<WorkItemAssignee>();
-
-    //Сообщения
     public ICollection<ProjectMessage> ProjectMessages { get; set; } = new List<ProjectMessage>();
     public ICollection<WorkItemMessage> WorkItemMessages { get; set; } = new List<WorkItemMessage>();
-
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<UserPinnedProject> PinnedProjects { get; set; } = new List<UserPinnedProject>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

@@ -7,7 +7,7 @@ using TaskManager.Services.WorkItemMessages;
 namespace TaskManager.Controllers
 {
     [Authorize]
-    [Route("api/workitems/{workitemId}/messages")]
+    [Route("api/workitems/{workItemId}/messages")]
     [ApiController]
     public class WorkItemMessageController(IWorkItemMessageService service) : ControllerBase
     {

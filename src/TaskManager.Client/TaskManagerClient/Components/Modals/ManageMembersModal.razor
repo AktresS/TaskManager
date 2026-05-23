@@ -1,0 +1,301 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.Group" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">Участники проекта</MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:480px;">
+
+            <MudText Typo="Typo.caption"
+                     Style="color:#555; font-weight:600; letter-spacing:0.5px; text-transform:uppercase;">
+                Текущие участники
+            </MudText>
+
+            @if (_loadingMembers)
+            {
+                <div style="padding:16px 0;">
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (!_members.Any())
+            {
+                <div style="padding:12px 0; color:#444; font-size:13px;">Нет участников</div>
+            }
+            else
+            {
+                <div style="margin-top:10px; margin-bottom:20px; display:flex; flex-direction:column; gap:6px;">
+                    @foreach (var member in _members)
+                    {
+                        <div class="member-row">
+
+                            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                                <div class="member-avatar">
+                                    @(member.UserName is { Length: > 0 } ? member.UserName[0].ToString().ToUpper() : "?")
+                                </div>
+                                <div style="min-width:0;">
+                                    <div style="font-size:13px; font-weight:500; color:#ddd;
+                                                white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        @member.UserName
+                                    </div>
+                                    <div style="font-size:11px; color:#555;">
+                                        @GetRoleLabel(member.MemberRole)
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (member.MemberRole != MemberRole.Owner)
+                            {
+                                <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                                    <MudSelect T="MemberRole"
+                                               Value="member.MemberRole"
+                                               ValueChanged="role => UpdateRole(member, role)"
+                                               Variant="Variant.Outlined"
+                                               Style="min-width:130px; font-size:12px;"
+                                               Margin="Margin.Dense"
+                                               AnchorOrigin="Origin.BottomCenter">
+                                        <MudSelectItem Value="MemberRole.Admin">Админ</MudSelectItem>
+                                        <MudSelectItem Value="MemberRole.Member">Участник</MudSelectItem>
+                                    </MudSelect>
+
+                                    <MudTooltip Text="Удалить">
+                                        <MudIconButton Icon="@Icons.Material.Filled.PersonRemove"
+                                                       Size="Size.Small"
+                                                       Style="color:#444;"
+                                                       OnClick="() => RemoveMember(member)" />
+                                    </MudTooltip>
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="font-size:11px; color:#7c6af7; font-weight:600;
+                                            padding:4px 10px; background:rgba(124,106,247,0.1);
+                                            border-radius:6px; flex-shrink:0;">
+                                    Владелец
+                                </div>
+                            }
+
+                        </div>
+                    }
+                </div>
+            }
+
+            <MudDivider Style="border-color:#2a2a2a; margin-bottom:16px;" />
+
+            <MudText Typo="Typo.caption"
+                     Style="color:#555; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:10px; display:block;">
+                Добавить участника
+            </MudText>
+
+            <MudAutocomplete T="UserSearchResponse"
+                    @bind-Value="_selectedUser"
+                    Label="Поиск по имени или email"
+                    Variant="Variant.Outlined"
+                    SearchFunc="SearchUsers"
+                    ToStringFunc="GetUserDisplay"
+                    Clearable="true"
+                    MinCharacters="2"
+                    AdornmentIcon="@Icons.Material.Filled.PersonSearch"
+                    Placeholder="Начните вводить..."
+                    CoerceText="false"
+                    NoItemsFoundText="Пользователь не найден"
+                    Class="mb-3">
+                <ItemTemplate Context="user">
+                    <div style="display:flex; align-items:center; gap:10px; padding:4px 0;">
+                        <div class="member-avatar" style="width:28px; height:28px; font-size:11px;">
+                            @(user.Name is { Length: > 0 } ? user.Name[0].ToString().ToUpper() : "?")
+                        </div>
+                        <div>
+                            <div style="font-size:13px; color:#ddd; font-weight:500;">@user.Name</div>
+                            <div style="font-size:11px; color:#555;">@user.Email</div>
+                        </div>
+                    </div>
+                </ItemTemplate>
+            </MudAutocomplete>
+
+            <!-- Роль + кнопка в одну строку -->
+            <div style="display:flex; gap:8px; align-items:center;">
+                <MudSelect T="MemberRole"
+                        @bind-Value="_newMemberRole"
+                        Variant="Variant.Outlined"
+                        Style="flex:1;"
+                        AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="MemberRole.Member">Участник</MudSelectItem>
+                    <MudSelectItem Value="MemberRole.Admin">Администратор</MudSelectItem>
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled"
+                        Color="Color.Primary"
+                        Disabled="_selectedUser == null || _adding"
+                        OnClick="AddMember"
+                        Style="height:56px; border-radius:10px; text-transform:none; font-weight:600; white-space:nowrap; flex-shrink:0;">
+                    @if (_adding)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Добавление...</span>
+                    }
+                    else
+                    {
+                        <span>Добавить</span>
+                    }
+                </MudButton>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@_error</MudAlert>
+            }
+
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close()"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Готово
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .member-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: #1a1a1a;
+        border: 1px solid #242424;
+    }
+
+    .member-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #2a2a2a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        color: #888;
+        flex-shrink: 0;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int ProjectId { get; set; }
+
+    private List<ProjectMemberResponse> _members = new();
+    private bool _loadingMembers = true;
+    private bool _adding = false;
+    private string? _error;
+
+    private UserSearchResponse? _selectedUser;
+    private MemberRole _newMemberRole = MemberRole.Member;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMembers();
+    }
+
+    private async Task LoadMembers()
+    {
+        _loadingMembers = true;
+        try { _members = await MemberService.GetMembersAsync(ProjectId); }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loadingMembers = false; }
+    }
+
+    // ── Поиск пользователей ──
+
+    private async Task<IEnumerable<UserSearchResponse>> SearchUsers(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+            return Enumerable.Empty<UserSearchResponse>();
+
+        try
+        {
+            var results = await UserService.SearchAsync(value);
+
+            // Исключаем уже добавленных участников
+            return results.Where(u => _members.All(m => m.UserId != u.Id));
+        }
+        catch { return Enumerable.Empty<UserSearchResponse>(); }
+    }
+
+    // ── Добавить участника ──
+
+    private async Task AddMember()
+    {
+        if (_selectedUser is null) return;
+
+        _adding = true;
+        _error = null;
+
+        try
+        {
+            await MemberService.AddMemberAsync(ProjectId, new AddProjectMemberRequest
+            {
+                UserId = _selectedUser.Id,
+                Role   = _newMemberRole
+            });
+
+            _selectedUser = null;
+            _newMemberRole = MemberRole.Member;
+            await LoadMembers();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _adding = false; }
+    }
+
+    // ── Сменить роль ──
+
+    private async Task UpdateRole(ProjectMemberResponse member, MemberRole newRole)
+    {
+        if (member.MemberRole == newRole) return;
+        _error = null;
+
+        try
+        {
+            await MemberService.UpdateProjectMemberRole(ProjectId, member.UserId,
+                new UpdateProjectRoleRequest { Role = newRole });
+
+            member.MemberRole = newRole;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private string GetUserDisplay(UserSearchResponse? u) => u is null ? string.Empty : $"{u.Name} ({u.Email})";
+
+    // ── Удалить участника ──
+
+    private async Task RemoveMember(ProjectMemberResponse member)
+    {
+        _error = null;
+
+        try
+        {
+            await MemberService.RemoveMemberAsync(ProjectId, member.UserId);
+            _members.Remove(member);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    // ── Helpers ──
+
+    private string GetRoleLabel(MemberRole role) => role switch
+    {
+        MemberRole.Owner  => "Владелец",
+        MemberRole.Admin  => "Администратор",
+        MemberRole.Member => "Участник",
+        _                 => role.ToString()
+    };
+}

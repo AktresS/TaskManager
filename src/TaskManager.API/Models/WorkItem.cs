@@ -13,17 +13,18 @@ public class WorkItem
     [Required]
     [MaxLength(256)]
     public string Title { get; set; } = string.Empty;
-
+    
     public string? Description { get; set; }
 
     public TaskState State { get; set; } = TaskState.New;
 
     public TaskPriority Priority { get; set; } = TaskPriority.Medium;
 
-    [Required]
-    public int CreatedById { get; set; }
+    public int? CreatedById { get; set; }
 
     public int? ProjectId { get; set; }
+
+    public DateTime? StartDate { get; set; }
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
@@ -33,7 +34,7 @@ public class WorkItem
     public DateTime DeadLine { get; set; }
 
     [ForeignKey("CreatedById")]
-    public User CreatedBy { get; set; } = null!;
+    public User? CreatedBy { get; set; } = null!;
 
     [ForeignKey("ProjectId")]
     public Project? Project { get; set; }

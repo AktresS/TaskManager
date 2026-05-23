@@ -28,10 +28,8 @@ public class Project
     public User CreatedBy { get; set; } = null!;
 
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
-
     public ICollection<WorkItem> WorkItems { get; set; } = new List<WorkItem>();
-
     public ICollection<ProjectMessage> Messages { get; set; } = new List<ProjectMessage>();
-    
     public ICollection<Board> Boards { get; set; } = new List<Board>();
+    public ICollection<UserPinnedProject> PinnedByUsers { get; set; } = new List<UserPinnedProject>();
 }

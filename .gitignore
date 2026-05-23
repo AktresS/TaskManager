@@ -62,6 +62,7 @@ Commands
 # Frontend
 node_modules/
 **/wwwroot/lib/
+**/wwwroot/appsettings.json
 
 # Env
 .env
