@@ -18,6 +18,7 @@ public class WorkItemResponse
     public TaskState State { get; set; }
     public DateTime? CreatedDate { get; set; }
     public DateTime? StartDate { get; set; }
+    public DateTime? CompletedAt { get; set; }
     public DateTime DeadLine { get; set; }
     public List<UserShortDto> Assignees { get; set; } = new();
 }

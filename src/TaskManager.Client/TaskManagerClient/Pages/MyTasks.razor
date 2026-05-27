@@ -2,15 +2,15 @@
 @attribute [Authorize]
 <PageTitle>Мои задачи</PageTitle>
 
-<div class="tasks-header">
-    <div>
-        <MudText Typo="Typo.h4" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.5px;">
-            Мои задачи
-        </MudText>
-        <MudText Typo="Typo.body2" Style="color:#555; margin-top:2px;">
-            @(tasks?.Count ?? 0) задач всего
-        </MudText>
-    </div>
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+    <MudButton Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.FilterList"
+               OnClick="() => _showFilters = !_showFilters"
+               Style="@FilterButtonStyle">
+        Фильтры
+    </MudButton>
+
+    <MudSpacer />
 
     <MudButton Variant="Variant.Filled"
                Color="Color.Primary"
@@ -19,18 +19,34 @@
                Style="border-radius:10px; text-transform:none; font-weight:600; height:40px;">
         Новая задача
     </MudButton>
+
 </div>
 
-<div class="filter-row">
-    @foreach (var filter in _filters)
-    {
-        <button class="filter-chip @(_activeFilter == filter.Key ? "active" : "")"
-                @onclick="() => _activeFilter = filter.Key">
-            @filter.Label
-            <span class="chip-count">@GetFilterCount(filter.Key)</span>
-        </button>
-    }
-</div>
+@if (_showFilters)
+{
+    <div class="board-filters" style="margin-bottom:16px;">
+        <div class="filter-row">
+            @foreach (var filter in _filters)
+            {
+                <button class="filter-chip @(_activeFilter == filter.Key ? "active" : "")"
+                        @onclick="() => { _activeFilter = filter.Key; _currentPage = 1; }">
+                    @filter.Label
+                    <span class="chip-count">@GetFilterCount(filter.Key)</span>
+                </button>
+            }
+        </div>
+
+        <div class="filter-row">
+            @foreach (var filter in _typeFilters)
+            {
+                <button class="filter-chip @(_typeFilter == filter.Key ? "active" : "")"
+                        @onclick="() => { _typeFilter = filter.Key; _currentPage = 1; }">
+                    @filter.Label
+                </button>
+            }
+        </div>
+    </div>
+}
 
 @if (isLoading)
 {
@@ -57,7 +73,7 @@ else if (FilteredTasks.Count == 0)
 else
 {
     <div class="tasks-grid">
-        @foreach (var task in FilteredTasks)
+        @foreach (var task in PagedTasks)
         {
             <div class="task-card @GetCardAccent(task.Priority)" @onclick="() => StartEdit(task)">
 
@@ -81,7 +97,7 @@ else
 
                 <div class="task-card-bottom">
 
-                    <span class="deadline @GetDeadlineClass(task.DeadLine)">
+                    <span class="deadline @GetDeadlineClass(task)">
                         <MudIcon Icon="@Icons.Material.Filled.Schedule"
                                  Style="font-size:13px;" />
                         @task.DeadLine.ToString("dd MMM")
@@ -109,6 +125,13 @@ else
                     </div>
 
                     <div class="task-actions" @onclick:stopPropagation="true">
+                        <MudButton Variant="Variant.Text"
+                                StartIcon="@Icons.Material.Filled.Forum"
+                                Size="Size.Small"
+                                OnClick="() => GoToChat(task.Id)"
+                                Style="text-transform:none; color:#555; font-size:12px; padding:4px 8px;">
+                            Чат
+                        </MudButton>
                         @if (task.State != TaskState.Completed)
                         {
                             <MudTooltip Text="Завершить">
@@ -119,6 +142,12 @@ else
                             </MudTooltip>
 
                         }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                    Style="font-size:16px; color:#22c55e; margin-left:auto;" />
+                        }
+
                         <MudTooltip Text="Удалить">
                             <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                        Size="Size.Small"
@@ -133,6 +162,18 @@ else
             </div>
         }
     </div>
+
+    @if (TotalPages > 1)
+    {
+        <div style="display:flex; justify-content:center; margin-top:20px;">
+            <MudPagination Count="@TotalPages"
+                        @bind-Selected="_currentPage"
+                        Color="Color.Primary"
+                        Variant="Variant.Filled"
+                        BoundaryCount="1"
+                        MiddleCount="3" />
+        </div>
+    }
 }
 
 @code {
@@ -142,6 +183,33 @@ else
     private WorkItemResponse? editingTask;
     private UpdateWorkItemRequest editModel = new();
     private string _activeFilter = "all";
+    private string _typeFilter = "all";
+    private int _currentUserId;
+    private bool _showFilters = false;
+    private int _currentPage = 1;
+    private const int PageSize = 12;
+
+    private int TotalPages => (int)Math.Ceiling(FilteredTasks.Count / (double)PageSize);
+
+    private string _searchValue = string.Empty;
+    private string _search
+    {
+        get => _searchValue;
+        set { _searchValue = value; _currentPage = 1; }
+    }
+
+    private void ResetPage() => _currentPage = 1;
+
+    private List<WorkItemResponse> PagedTasks => FilteredTasks
+        .Skip((_currentPage - 1) * PageSize)
+        .Take(PageSize)
+        .ToList();
+
+    private string FilterButtonStyle =>
+        _showFilters
+            ? "border-radius:10px; text-transform:none; font-weight:500; border-color:#7c6af7; color:#7c6af7; font-size:13px;"
+            : "border-radius:10px; text-transform:none; font-weight:500; border-color:#2a2a2a; color:#666; font-size:13px;";
+
 
     private record FilterItem(string Key, string Label);
     private readonly List<FilterItem> _filters = new()
@@ -154,15 +222,38 @@ else
         new("overdue", "Просроченные"),
     };
 
-    private List<WorkItemResponse> FilteredTasks => (tasks ?? new()).Where(t => _activeFilter switch
+    private readonly List<FilterItem> _typeFilters = new()
     {
-        "new"        => t.State == TaskState.New,
-        "inprogress" => t.State == TaskState.InProgress,
-        "onhold" => t.State == TaskState.OnHold,
-        "done"       => t.State == TaskState.Completed,
-        "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
-        _            => true
-    }).ToList();
+        new("all",      "Все"),
+        new("personal", "Личные"),
+        new("project",  "Проектные"),
+        new("assignee", "Я исполнитель"),
+        new("created",  "Я создатель"),
+    };
+
+    private List<WorkItemResponse> FilteredTasks => (tasks ?? new())
+        .Where(t => _activeFilter switch
+        {
+            "new"        => t.State == TaskState.New,
+            "inprogress" => t.State == TaskState.InProgress,
+            "onhold"     => t.State == TaskState.OnHold,
+            "done"       => t.State == TaskState.Completed,
+            "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
+            _            => true
+        })
+        .Where(t => _typeFilter switch
+        {
+            "personal" => t.ProjectId == null,
+            "project"  => t.ProjectId != null,
+            "assignee" => t.Assignees.Any(a => a.Id == _currentUserId),
+            "created"  => t.CreatedById == _currentUserId,
+            _          => true
+        })
+        .Where(t => string.IsNullOrWhiteSpace(SearchService.SearchQuery) ||
+                    t.Title.Contains(SearchService.SearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    (t.Description?.Contains(SearchService.SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (t.ProjectName?.Contains(SearchService.SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false))
+        .ToList();
 
     private int GetFilterCount(string key) => (tasks ?? new()).Count(t => key switch
     {
@@ -174,7 +265,14 @@ else
         _            => true
     });
 
-    protected override async Task OnInitializedAsync() => await LoadTasks();
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (claim != null) int.TryParse(claim.Value, out _currentUserId);
+
+        await LoadTasks();
+    }
 
     private async Task LoadTasks()
     {
@@ -185,6 +283,15 @@ else
         finally { isLoading = false; }
     }
 
+    protected override void OnInitialized()
+    {
+        SearchService.OnChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        SearchService.OnChanged -= StateHasChanged;
+    }
 
     private string GetCardAccent(TaskPriority p) => p switch
     {
@@ -206,6 +313,7 @@ else
     {
         TaskState.InProgress => "pill-inprogress",
         TaskState.Completed  => "pill-done",
+        TaskState.OnHold     => "pill-onhold",
         _                    => "pill-new"
     };
 
@@ -213,17 +321,25 @@ else
     {
         TaskState.New        => "Новая",
         TaskState.InProgress => "В работе",
-        TaskState.OnHold     => "bg-warning text-dark",
+        TaskState.OnHold     => "Приостановлена",
         TaskState.Completed  => "Готово",
         _                    => s.ToString()
     };
 
-    private string GetDeadlineClass(DateTime date)
+    private string GetDeadlineClass(WorkItemResponse task)
     {
-        if (date < DateTime.Now) return "overdue";
-        if ((date - DateTime.Now).Days <= 2) return "soon";
+        if (task.State == TaskState.Completed)
+            return task.CompletedAt.HasValue && task.CompletedAt.Value <= task.DeadLine 
+                ? "ontime" 
+                : "overdue";
+
+        if (task.DeadLine < DateTime.Now) return "overdue";
+        if ((task.DeadLine - DateTime.Now).Days <= 2) return "soon";
         return "normal";
     }
+
+    
+    private void GoToChat(int id) => NavManager.NavigateTo($"/chats?task={id}");
 
     private async Task MarkDone(int id)
     {
@@ -233,8 +349,20 @@ else
 
     private async Task Delete(int id)
     {
-        await TaskService.DeleteAsync(id);
-        await LoadTasks();
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Title,   "Удалить задачу?" },
+            { x => x.Message, "Задача будет удалена. Это действие нельзя отменить." },
+            { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
+                {
+                    await TaskService.DeleteAsync(id);
+                    await LoadTasks();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
     }
     private async Task OpenCreateModal()
     {

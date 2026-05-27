@@ -4,19 +4,27 @@
 <PageTitle>Диаграмма Ганта</PageTitle>
 
 <div class="gantt-header">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                       Size="Size.Small"
-                       Style="color:#555;"
-                       OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/board")' />
-        <div>
-            <MudText Typo="Typo.h5" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.3px;">
-                @(_projectName ?? "Диаграмма Ганта")
-            </MudText>
-            <MudText Typo="Typo.body2" Style="color:#555; margin-top:2px;">
-                @_tasks.Count задач
-            </MudText>
-        </div>
+    <div style="display:flex; align-items:center; gap:8px;">  
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.ViewKanban"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/board")'
+                Style="@GetNavButtonStyle("board")">
+            Канбан-доска
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.BarChart"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/gantt")'
+                Style="@GetNavButtonStyle("gantt")">
+            Диаграмма Ганта
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.PieChart"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/stats")'
+                Style="@GetNavButtonStyle("stats")">
+            Статистика
+        </MudButton>
     </div>
 
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -70,7 +78,9 @@ else
 
             @foreach (var task in FilteredTasks)
             {
-                <div class="gantt-label-row" title="@task.Title">
+                <div class="gantt-label-row" title="@task.Title"
+                        @onclick="() => OpenTaskDetail(task)"
+                        style="cursor:pointer;">
                     <div class="priority-dot @GetPriorityDot(task.Priority)"></div>
                     <span class="gantt-label-text">@task.Title</span>
                     <span class="gantt-label-state @GetStatePill(task.State)">
@@ -115,7 +125,8 @@ else
                         {
                             <div class="gantt-bar @GetBarClass(task)"
                                 style="left:@(bar.Left)px; width:@(bar.Width)px;"
-                                title="@task.Title: @FormatDate(bar.Start) — @FormatDate(bar.End)">
+                                title="@task.Title: @FormatDate(bar.Start) — @FormatDate(bar.End)"
+                                @onclick="() => OpenTaskDetail(task)">
 
                                 @if (task.State == TaskState.Completed)
                                 {
@@ -223,11 +234,26 @@ else
             await System.Threading.Tasks.Task.WhenAll(projectTask, tasksTask);
 
             _projectName = projectTask.Result?.Name;
+
+            ProjectContext.SetProject(_projectName);
+
             _tasks       = tasksTask.Result ?? new();
 
             BuildDateRange();
         }
         finally { _loading = false; }
+    }
+
+    private string GetNavButtonStyle(string page)
+    {
+        var path = new Uri(NavManager.Uri).AbsolutePath.ToLower();
+        var isActive = page == "board" ? path.Contains("/board") :
+                    page == "gantt" ? path.Contains("/gantt") :
+                    page == "stats" ? path.Contains("/stats") : false;
+
+        return isActive
+            ? "border-radius:10px; text-transform:none; font-weight:500; border-color:#7c6af7; color:#7c6af7; font-size:13px;"
+            : "border-radius:10px; text-transform:none; font-weight:500; border-color:#2a2a2a; color:#666; font-size:13px;";
     }
 
     private void BuildDateRange()
@@ -269,6 +295,34 @@ else
         var width = Math.Max(((clampedEnd - clampedStart).Days + 1) * _dayWidth, _dayWidth);
 
         return new BarMetrics(left, width, start, end);
+    }
+
+    private async Task OpenTaskDetail(WorkItemResponse task)
+    {
+        var parameters = new DialogParameters<EditProjectTaskModal>
+        {
+            { x => x.WorkItem, task },
+            { x => x.ProjectId, ProjectId },
+            { x => x.OnSave, EventCallback.Factory.Create<WorkItemResponse>(this, async updated =>
+                {
+                    var existing = _tasks.FirstOrDefault(t => t.Id == updated.Id);
+                    if (existing is not null)
+                    {
+                        var idx = _tasks.IndexOf(existing);
+                        _tasks[idx] = updated;
+                        BuildDateRange();
+                    }
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<EditProjectTaskModal>("", parameters,
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            });
     }
 
     private int GetDayOffset(DateTime day) => (day.Date - _rangeStart).Days * _dayWidth;

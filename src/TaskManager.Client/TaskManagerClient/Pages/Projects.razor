@@ -4,15 +4,6 @@
 <PageTitle>Проекты</PageTitle>
 
 <div class="projects-header">
-    <div>
-        <MudText Typo="Typo.h4" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.5px;">
-            Проекты
-        </MudText>
-        <MudText Typo="Typo.body2" Style="color:#555; margin-top:2px;">
-            @(projects?.Count ?? 0) проектов
-        </MudText>
-    </div>
-
     <MudButton Variant="Variant.Filled"
                Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add"
@@ -86,11 +77,11 @@ else
 
                 <div class="project-card-footer" @onclick:stopPropagation="true">
                     <MudButton Variant="Variant.Text"
-                               StartIcon="@Icons.Material.Filled.Dashboard"
-                               Size="Size.Small"
-                               OnClick="() => GoToBoard(project.ProjectId)"
-                               Style="text-transform:none; color:#555; font-size:12px; padding:4px 8px;">
-                        Открыть
+                            StartIcon="@Icons.Material.Filled.Forum"
+                            Size="Size.Small"
+                            OnClick="() => GoToChat(project.ProjectId)"
+                            Style="text-transform:none; color:#555; font-size:12px; padding:4px 8px;">
+                        Чат
                     </MudButton>
 
                     <div style="display:flex; gap:4px;">
@@ -145,8 +136,9 @@ else
         catch (Exception ex) { error = ex.Message; }
         finally { isLoading = false; }
     }
-
+    
     private void GoToBoard(int id) => NavManager.NavigateTo($"/projects/{id}/board");
+    private void GoToChat(int id) => NavManager.NavigateTo($"/chats?project={id}");
 
     private async Task OpenCreateModal()
     {

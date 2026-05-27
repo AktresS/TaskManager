@@ -5,10 +5,20 @@
     margin-bottom: 28px;
 }
 
+.board-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #1a1a1a;
+    border: 1px solid #242424;
+    border-radius: 12px;
+}
+
 .filter-row {
     display: flex;
     gap: 8px;
-    margin-bottom: 24px;
     flex-wrap: wrap;
 }
 
@@ -62,7 +72,7 @@
     background: #1a1a1a;
     border: 1px solid #242424;
     border-radius: 14px;
-    padding: 18px;
+    padding: 14px;
     cursor: pointer;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     display: flex;
@@ -160,9 +170,11 @@
     font-size: 12px;
     font-weight: 500;
 }
+
 .deadline.overdue  { color: #ef4444; }
 .deadline.soon     { color: #f59e0b; }
 .deadline.normal   { color: #555; }
+.deadline.ontime { color: #22c55e; }
 
 .assignees {
     display: flex;

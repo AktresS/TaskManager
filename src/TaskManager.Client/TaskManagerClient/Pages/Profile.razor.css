@@ -24,8 +24,8 @@
 }
 
 .profile-avatar {
-    width: 88px;
-    height: 88px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     background: linear-gradient(135deg, #7c6af7, #2563eb);
     display: flex;

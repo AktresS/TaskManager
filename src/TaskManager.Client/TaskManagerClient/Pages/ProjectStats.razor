@@ -1,0 +1,441 @@
+﻿@page "/projects/{ProjectId:int}/stats"
+@attribute [Authorize]
+
+<PageTitle>Статистика проекта</PageTitle>
+
+<div class="stats-header">
+    <div style="display:flex; align-items:center; gap:8px;">  
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.ViewKanban"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/board")'
+                Style="@GetNavButtonStyle("board")">
+            Канбан-доска
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.BarChart"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/gantt")'
+                Style="@GetNavButtonStyle("gantt")">
+            Диаграмма Ганта
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.PieChart"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/stats")'
+                Style="@GetNavButtonStyle("stats")">
+            Статистика
+        </MudButton>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+
+        <div class="filter-group">
+            @foreach (var f in _memberFilters)
+            {
+                <button class="filter-btn @(_memberFilter == f.Key ? "active" : "")"
+                        @onclick="() => SetMemberFilter(f.Key)">
+                    @f.Label
+                </button>
+            }
+        </div>
+
+        <div class="filter-group">
+            @foreach (var f in _periodFilters)
+            {
+                <button class="filter-btn @(_periodFilter == f.Key ? "active" : "")"
+                        @onclick="() => SetPeriodFilter(f.Key)">
+                    @f.Label
+                </button>
+            }
+        </div>
+
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+        @for (int i = 0; i < 4; i++)
+        {
+            <div class="stat-skeleton"></div>
+        }
+    </div>
+}
+else
+{
+    <div class="stats-cards">
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(124,106,247,0.15);">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment"
+                         Style="font-size:20px; color:#7c6af7;" />
+            </div>
+            <div class="stat-value">@FilteredTasks.Count</div>
+            <div class="stat-label">Всего задач</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(34,197,94,0.15);">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                         Style="font-size:20px; color:#22c55e;" />
+            </div>
+            <div class="stat-value">@CompletedCount</div>
+            <div class="stat-label">Завершено</div>
+            @if (FilteredTasks.Count > 0)
+            {
+                <div class="stat-sub">@Math.Round(CompletedCount * 100.0 / FilteredTasks.Count)%</div>
+            }
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.15);">
+                <MudIcon Icon="@Icons.Material.Filled.Warning"
+                         Style="font-size:20px; color:#ef4444;" />
+            </div>
+            <div class="stat-value">@OverdueCount</div>
+            <div class="stat-label">Просрочено</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15);">
+                <MudIcon Icon="@Icons.Material.Filled.Pending"
+                         Style="font-size:20px; color:#f59e0b;" />
+            </div>
+            <div class="stat-value">@InProgressCount</div>
+            <div class="stat-label">В работе</div>
+        </div>
+
+    </div>
+
+    <div class="charts-row">
+
+        <div class="chart-card">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                По статусам
+            </MudText>
+
+            @if (FilteredTasks.Count == 0)
+            {
+                <div class="chart-empty">Нет данных</div>
+            }
+            else
+            {
+                <MudChart ChartType="ChartType.Pie"
+                        ChartSeries="@StatusChartData.AsChartDataSet()"
+                        ChartLabels="@StatusChartLabels"
+                        Width="220px"
+                        Height="220px"
+                        ChartOptions="_pieStateOptions" />
+                
+
+                @* <div class="chart-legend">
+                    @for (int i = 0; i < StatusChartLabels.Length; i++)
+                    {
+                        <div class="legend-row">
+                            <div class="legend-dot" style="background:@_statusColors[i];"></div>
+                            <span>@StatusChartLabels[i]</span>
+                            <span class="legend-count">@((int)StatusChartData[i])</span>
+                        </div>
+                    }
+                </div> *@
+            }
+        </div>
+
+        <div class="chart-card">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                По приоритетам
+            </MudText>
+
+            @if (FilteredTasks.Count == 0)
+            {
+                <div class="chart-empty">Нет данных</div>
+            }
+            else
+            {
+                <MudChart ChartType="ChartType.Pie"
+                        ChartSeries="@PriorityChartData.AsChartDataSet()"
+                        ChartLabels="@PriorityChartLabels"
+                        Width="220px"
+                        Height="220px"
+                        ChartOptions="_piePriorityOptions" />
+                
+                @* <div class="chart-legend">
+                    @for (int i = 0; i < PriorityChartLabels.Length; i++)
+                    {
+                        <div class="legend-row">
+                            <div class="legend-dot" style="background:@_priorityColors[i];"></div>
+                            <span>@PriorityChartLabels[i]</span>
+                            <span class="legend-count">@((int)PriorityChartData[i])</span>
+                        </div>
+                    }
+                </div> *@
+            }
+        </div>
+
+        @if (_memberFilter == "all")
+        {
+            <div class="chart-card">
+                <MudText Typo="Typo.subtitle1"
+                         Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                    Топ исполнителей
+                </MudText>
+
+                @if (!TopAssignees.Any())
+                {
+                    <div class="chart-empty">Нет данных</div>
+                }
+                else
+                {
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        @foreach (var (name, avatarUrl, total, done) in TopAssignees)
+                        {
+                            var percent = total > 0 ? (int)(done * 100.0 / total) : 0;
+                            <div class="assignee-row">
+                                <div class="assignee-avatar">
+                                    @if (!string.IsNullOrEmpty(avatarUrl))
+                                    {
+                                        <img src="@avatarUrl"
+                                             style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        @(name is { Length: > 0 } ? name[0].ToString().ToUpper() : "?")
+                                    }
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                        <span style="font-size:16px; color:#ddd; font-weight:500;">@name</span>
+                                        <span style="font-size:13px; color:#555;"> @done/@total</span>
+                                    </div>
+                                    <MudProgressLinear Value="@percent"
+                                                    Color="Color.Primary"
+                                                    Rounded="true"
+                                                    Size="Size.Medium"/>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+
+    @if (WeeklyData.Any())
+    {
+        <div class="chart-card" style="margin-top:16px;">
+            <MudText Typo="Typo.subtitle1"
+                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                Завершённые задачи по неделям
+            </MudText>
+
+            <MudChart ChartType="ChartType.Bar"
+                    ChartLabels="@WeeklyLabels"
+                    ChartSeries="@WeeklySeries"
+                    Width="100%"
+                    Height="200px"
+                    ChartOptions="_barOptions" />
+        </div>
+    }
+}
+
+
+@code {
+    [Parameter] public int ProjectId { get; set; }
+
+    private List<WorkItemResponse> _allTasks = new();
+    private string? _projectName;
+    private bool _loading = true;
+    private int _currentUserId;
+
+    private string _memberFilter = "all";
+    private string _periodFilter = "month";
+
+    private record FilterItem(string Key, string Label);
+
+    private readonly List<FilterItem> _memberFilters = new()
+    {
+        new("all",     "Все задачи"),
+        new("mine",    "Мои задачи"),
+        new("created", "Созданные мной"),
+    };
+
+    private readonly List<FilterItem> _periodFilters = new()
+    {
+        new("week",  "Неделя"),
+        new("month", "Месяц"),
+        new("all",   "Всё время"),
+    };
+
+    private readonly string[] _statusColors   = { "#444", "#7c6af7", "#f59e0b", "#22c55e", "#ef4444" };
+    private readonly string[] _priorityColors = { "#22c55e", "#f59e0b", "#ef4444" };
+
+    private readonly ChartOptions _pieStateOptions = new()
+    {
+        ChartPalette = new[] { "#444", "#7c6af7", "#f59e0b", "#22c55e", "#ef4444" }
+    };
+
+    private readonly ChartOptions _piePriorityOptions = new()
+    {
+        ChartPalette = new[] { "#22c55e", "#f59e0b", "#ef4444" }
+    };
+
+    private readonly ChartOptions _barOptions = new()
+    {
+        ChartPalette = new[] { "#7c6af7" },
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (claim != null) int.TryParse(claim.Value, out _currentUserId);
+
+        try
+        {
+            var projectTask = ProjectService.GetByIdAsync(ProjectId);
+            var tasksTask = TaskService.GetProjectAsync(ProjectId);
+            await System.Threading.Tasks.Task.WhenAll(projectTask, tasksTask);
+
+            _projectName = projectTask.Result?.Name;
+            _allTasks = tasksTask.Result ?? new();
+            ProjectContext.SetProject(_projectName);
+        }
+        finally { _loading = false; }
+    }
+
+    private void SetMemberFilter(string key) => _memberFilter = key;
+    private void SetPeriodFilter(string key) => _periodFilter = key;
+
+    private string GetNavButtonStyle(string page)
+    {
+        var path = new Uri(NavManager.Uri).AbsolutePath.ToLower();
+        var isActive = page == "board" ? path.Contains("/board") :
+                    page == "gantt" ? path.Contains("/gantt") :
+                    page == "stats" ? path.Contains("/stats") : false;
+
+        return isActive
+            ? "border-radius:10px; text-transform:none; font-weight:500; border-color:#7c6af7; color:#7c6af7; font-size:13px;"
+            : "border-radius:10px; text-transform:none; font-weight:500; border-color:#2a2a2a; color:#666; font-size:13px;";
+    }
+
+    private List<WorkItemResponse> FilteredTasks
+    {
+        get
+        {
+            var tasks = _allTasks.AsEnumerable();
+
+            tasks = _memberFilter switch
+            {
+                "mine"    => tasks.Where(t => t.Assignees.Any(a => a.Id == _currentUserId)),
+                "created" => tasks.Where(t => t.CreatedById == _currentUserId),
+                _         => tasks
+            };
+
+            var cutoff = _periodFilter switch
+            {
+                "week"  => DateTime.Now.AddDays(-7),
+                "month" => DateTime.Now.AddMonths(-1),
+                _       => DateTime.MinValue
+            };
+
+            tasks = tasks.Where(t => t.CreatedDate >= cutoff);
+
+            return tasks.ToList();
+        }
+    }
+
+    private int CompletedCount  => FilteredTasks.Count(t => t.State == TaskState.Completed);
+    private int InProgressCount => FilteredTasks.Count(t => t.State == TaskState.InProgress);
+    private int OverdueCount    => FilteredTasks.Count(t => t.DeadLine < DateTime.Now && t.State != TaskState.Completed);
+
+    private double[] StatusChartData => new double[]
+    {
+        FilteredTasks.Count(t => t.State == TaskState.New),
+        FilteredTasks.Count(t => t.State == TaskState.InProgress),
+        FilteredTasks.Count(t => t.State == TaskState.OnHold),
+        FilteredTasks.Count(t => t.State == TaskState.Completed),
+        OverdueCount
+    };
+
+    private string[] StatusChartLabels => new[]
+    {
+        $"Новые {GetPercent(FilteredTasks.Count(t => t.State == TaskState.New))}",
+        $"В работе {GetPercent(FilteredTasks.Count(t => t.State == TaskState.InProgress))}",
+        $"Приостановлены {GetPercent(FilteredTasks.Count(t => t.State == TaskState.OnHold))}",
+        $"Завершены {GetPercent(CompletedCount)}",
+        $"Просрочены {GetPercent(OverdueCount)}"
+    };
+
+    private double[] PriorityChartData => new double[]
+    {
+        FilteredTasks.Count(t => t.Priority == TaskPriority.Low),
+        FilteredTasks.Count(t => t.Priority == TaskPriority.Medium),
+        FilteredTasks.Count(t => t.Priority == TaskPriority.High),
+    };
+
+    private string[] PriorityChartLabels => new[]
+    {
+        $"Низкий {GetPercent(FilteredTasks.Count(t => t.Priority == TaskPriority.Low))}",
+        $"Средний {GetPercent(FilteredTasks.Count(t => t.Priority == TaskPriority.Medium))}",
+        $"Высокий {GetPercent(FilteredTasks.Count(t => t.Priority == TaskPriority.High))}"
+    };
+
+    private string GetPercent(int count) =>
+    FilteredTasks.Count > 0
+        ? $"({Math.Round(count * 100.0 / FilteredTasks.Count)}%)"
+        : "(0%)";
+
+    private List<(string Name, string? AvatarUrl, int Total, int Done)> TopAssignees =>
+        FilteredTasks
+            .SelectMany(t => t.Assignees.Select(a => new { a.Id, a.Name, a.AvatarUrl, IsDone = t.State == TaskState.Completed }))
+            .GroupBy(x => new { x.Id, x.Name, x.AvatarUrl })
+            .Select(g => (
+                Name:      g.Key.Name ?? "—",
+                AvatarUrl: g.Key.AvatarUrl,
+                Total:     g.Count(),
+                Done:      g.Count(x => x.IsDone)
+            ))
+            .OrderByDescending(x => x.Done)
+            .Take(5)
+            .ToList();
+
+    private List<(string Label, int Count)> WeeklyData
+    {
+        get
+        {
+            var completed = FilteredTasks
+                .Where(t => t.State == TaskState.Completed)
+                .ToList();
+
+            if (!completed.Any()) return new();
+
+            var weeks = new List<(string Label, int Count)>();
+            var now = DateTime.Now;
+
+            for (int i = 7; i >= 0; i--)
+            {
+                var weekStart = now.AddDays(-i * 7).Date;
+                var weekEnd = weekStart.AddDays(7);
+                var count = completed.Count(t => t.DeadLine >= weekStart && t.DeadLine < weekEnd);
+                weeks.Add(($"{weekStart:dd.MM}", count));
+            }
+
+            return weeks;
+        }
+    }
+
+    private string[] WeeklyLabels => WeeklyData.Select(x => x.Label).ToArray();
+
+    private List<ChartSeries<double>> WeeklySeries => new()
+    {
+        new ChartSeries<double>
+        {
+            Name = "Завершено",
+            Data = WeeklyData.Select(x => (double)x.Count).ToArray()
+        }
+    };
+}
+

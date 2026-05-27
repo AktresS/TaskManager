@@ -17,10 +17,24 @@
                        OnClick="ToggleDrawer" />
 
         <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.3px;">
-            TaskManager
+            @GetPageTitle()
         </MudText>
 
         <MudSpacer />
+
+        <MudSpacer />
+
+        @if (ShowSearch)
+        {
+            <MudTextField @bind-Value="_globalSearch"
+                        Placeholder="Поиск..."
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Search"
+                        Immediate="true"
+                        Clearable="true"
+                        Style="width:280px; min-width:280px; height:40px" />
+        }
 
         <AuthorizeView>
             <Authorized>
@@ -159,6 +173,20 @@
 @code {
     private bool _drawerOpen = true;
     private bool _notificationsOpen = false;
+    private string _globalSearch
+    {
+        get => SearchService.SearchQuery;
+        set => SearchService.SetQuery(value);
+    }
+
+    private bool ShowSearch
+    {
+        get
+        {
+            var path = new Uri(NavManager.Uri).AbsolutePath.ToLower();
+            return path == "/my-tasks" || path.Contains("/board");
+        }
+    }
 
     private void ToggleNotifications() => _notificationsOpen = !_notificationsOpen;
 
@@ -183,7 +211,38 @@
         {
             Console.WriteLine($"NotificationService init failed: {ex.Message}");
         }
+    }
 
+    protected override void OnInitialized()
+    {
+        NavManager.LocationChanged += OnLocationChanged;
+        ProjectContext.OnChanged += () => InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetPageTitle()
+    {
+        var uri = NavManager.Uri;
+        var path = new Uri(uri).AbsolutePath.ToLower();
+
+        if (path == "/" || path == "/my-tasks") return "Мои задачи";
+        if (path == "/projects") return "Проекты";
+        if (path == "/chats") return "Чаты";
+        if (path == "/profile") return "Профиль";
+        if (path.Contains("/board"))
+            return ProjectContext.ProjectName != null ? $"{ProjectContext.ProjectName} · Канбан доска" : "Канбан доска";
+        if (path.Contains("/gantt"))
+            return ProjectContext.ProjectName != null ? $"{ProjectContext.ProjectName} · Диаграмма Ганта" : "Диаграмма Ганта";
+        if (path.Contains("/stats"))
+            return ProjectContext.ProjectName != null ? $"{ProjectContext.ProjectName} · Статистика" : "Статистика";
+        if (path.Contains("/identity/account/login")) return "Вход";
+        if (path.Contains("/identity/account/register")) return "Регистрация";
+
+        return "TaskManager";
     }
 
     private bool _isFirstLoad = true;
@@ -214,6 +273,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        NavManager.LocationChanged -= OnLocationChanged; 
         NotificationService.OnChanged -= StateHasChanged;
         await NotificationService.DisposeAsync();
     }

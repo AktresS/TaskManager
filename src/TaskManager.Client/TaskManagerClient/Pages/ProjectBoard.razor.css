@@ -2,9 +2,66 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
     gap: 12px;
+}
+
+.board-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #1a1a1a;
+    border: 1px solid #242424;
+    border-radius: 12px;
+}
+
+.filter-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    background: transparent;
+    color: #666;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.filter-chip:hover {
+    border-color: #444;
+    color: #aaa;
+}
+
+.filter-chip.active {
+    background: rgba(124, 106, 247, 0.12);
+    border-color: rgba(124, 106, 247, 0.4);
+    color: #7c6af7;
+}
+
+.chip-count {
+    background: #2a2a2a;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    color: #555;
+}
+
+.filter-chip.active .chip-count {
+    background: rgba(124, 106, 247, 0.2);
+    color: #7c6af7;
 }
 
 .board-tabs {
@@ -59,7 +116,7 @@
     align-items: flex-start;
     overflow-x: auto;
     padding-bottom: 16px;
-    min-height: 60vh;
+    height: calc(100vh - 180px);
     transition: opacity 0.15s ease;
 }
 
@@ -72,6 +129,9 @@
     padding: 12px;
     transition: border-color 0.15s ease;
     flex-shrink: 0;
+    max-height: calc(100vh - 240px); 
+    display: flex;        
+    flex-direction: column; 
 }
 
 .kanban-column.drag-over {
@@ -123,6 +183,9 @@
     flex-direction: column;
     gap: 8px;
     min-height: 40px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px;
 }
 
 .task-card {
@@ -213,6 +276,7 @@
 .deadline.overdue { color: #ef4444; }
 .deadline.soon    { color: #f59e0b; }
 .deadline.normal  { color: #444; }
+.deadline.ontime { color: #22c55e; }
 
 .priority-dot { width: 7px; height: 7px; border-radius: 50%; }
 .dot-red    { background: #ef4444; box-shadow: 0 0 5px #ef444455; }
@@ -292,3 +356,6 @@
     padding: 80px 0;
 }
 
+:global(.mud-main-content) {
+    overflow: hidden !important;
+}

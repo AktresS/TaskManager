@@ -4,26 +4,38 @@
 
 <PageTitle>Доска проекта</PageTitle>
 
-<!-- Хедер -->
 <div class="board-header">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                       Size="Size.Small"
-                       Style="color:#555;"
-                       OnClick='() => NavManager.NavigateTo("/projects")' />
-        <div>
-            <MudText Typo="Typo.h5" Style="font-weight:700; color:#eaeaea; letter-spacing:-0.3px;">
-                Канбан доска
-            </MudText>
+    <div style="display:flex; align-items:center; gap:8px;">        
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.ViewKanban"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/board")'
+                Style="@GetNavButtonStyle("board")">
+            Канбан-доска
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.BarChart"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/gantt")'
+                Style="@GetNavButtonStyle("gantt")">
+            Диаграмма Ганта
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                StartIcon="@Icons.Material.Filled.PieChart"
+                OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/stats")'
+                Style="@GetNavButtonStyle("stats")">
+            Статистика
+        </MudButton>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <MudButton Variant="Variant.Outlined"
+                    StartIcon="@Icons.Material.Filled.FilterList"
+                    OnClick="() => _showFilters = !_showFilters"
+                    Style="@FilterButtonStyle">
+                Фильтры
+            </MudButton>
         </div>
     </div>
-    <MudTooltip Text="Диаграмма Ганта">
-        <MudIconButton Icon="@Icons.Material.Filled.BarChart"
-                    Size="Size.Small"
-                    Style="color:#555;"
-                    OnClick='() => NavManager.NavigateTo($"/projects/{ProjectId}/gantt")' />
-    </MudTooltip>
-    <!-- Переключалка досок -->
+
     <div style="display:flex; align-items:center; gap:8px;">
         @if (boards.Count > 0)
         {
@@ -52,7 +64,33 @@
     </div>
 </div>
 
-<!-- Состояния -->
+@if (_showFilters)
+{
+    <div class="board-filters">
+
+        <div class="filter-row">
+            @foreach (var filter in _filters)
+            {
+                <button class="filter-chip @(_activeFilter == filter.Key ? "active" : "")"
+                        @onclick="() => _activeFilter = filter.Key">
+                    @filter.Label
+                    <span class="chip-count">@GetFilterCount(filter.Key)</span>
+                </button>
+            }
+        </div>
+
+        <div class="filter-row" style="margin-top:-8px;">
+            @foreach (var filter in _typeFilters)
+            {
+                <button class="filter-chip @(_typeFilter == filter.Key ? "active" : "")"
+                        @onclick="() => _typeFilter = filter.Key">
+                    @filter.Label
+                </button>
+            }
+        </div>
+    </div>
+}
+
 @if (isLoading)
 {
     <div class="columns-row">
@@ -87,12 +125,11 @@ else
                 @ondrop="() => OnDrop(col.Id)"
                 @ondrop:preventDefault="true">
 
-                <!-- Заголовок колонки -->
                 <div class="column-header">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <div class="column-dot" style="background:@GetColumnColor(col.Order);"></div>
                         <span class="column-name">@col.Name</span>
-                        <span class="column-count">@col.WorkItems.Count</span>
+                        <span class="column-count">@GetFilteredTasks(col).Count()</span>
                     </div>
 
                     <div class="column-actions">
@@ -112,7 +149,7 @@ else
                 </div>
 
                 <div class="column-cards">
-                    @foreach (var task in col.WorkItems)
+                    @foreach (var task in GetFilteredTasks(col))
                     {
                         var t = task;
                         <div class="task-card @(draggingTaskId == t.Id ? "dragging" : "")"
@@ -137,10 +174,10 @@ else
                             }
 
                             <div class="task-footer">
-                                <span class="deadline @GetDeadlineClass(t.DeadLine)">
+                                <span class="deadline @GetDeadlineClass(task)">
                                     <MudIcon Icon="@Icons.Material.Filled.Schedule"
-                                             Style="font-size:11px;" />
-                                    @t.DeadLine.ToString("dd MMM")
+                                            Style="font-size:13px;" />
+                                    @task.DeadLine.ToString("dd MMM")
                                 </span>
 
                                 <div class="assignees">
@@ -163,23 +200,30 @@ else
                                         <div class="avatar-chip more">+@(task.Assignees.Count - 3)</div>
                                     }
                                 </div>
-
-                                @if (t.State != TaskState.Completed)
-                                {
-                                    <MudTooltip Text="Завершить">
-                                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircleOutline"
-                                                       Size="Size.Small"
-                                                       Style="color:#444; padding:2px; margin-left:auto;"
-                                                       OnClick="() => MarkDone(t)"/>
-                                    </MudTooltip>
-                                }
-                                else
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                             Style="font-size:16px; color:#22c55e; margin-left:auto;" />
-                                }
-
                                 <div @onclick:stopPropagation="true">
+                                    <MudTooltip Text="Чат задачи">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Forum"
+                                                        Size="Size.Small"
+                                                        Style="color:#444; padding:2px;"
+                                                        OnClick="() => GoToChat(t.Id)" />
+                                                                            </MudTooltip>
+
+                                    @if (t.State != TaskState.Completed)
+                                    {
+                                        <MudTooltip Text="Завершить">
+                                            <MudIconButton Icon="@Icons.Material.Filled.CheckCircleOutline"
+                                                        Size="Size.Small"
+                                                        Style="color:#444; padding:2px;"
+                                                        OnClick="() => MarkDone(t)"/>
+                                        </MudTooltip>
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                                Style="font-size:16px; color:#22c55e; margin-left:auto;" />
+                                    }
+
+
                                     <MudTooltip Text="Удалить">
                                         <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                                     Size="Size.Small"
@@ -212,11 +256,70 @@ else
     private bool isLoading = true;
     private int? draggingTaskId;
     private int _loadedProjectId = -1;
+    private bool _showFilters = false;
+    private string _search = string.Empty;
+    private string _activeFilter = "all";
+    private string _typeFilter = "all";
+    private int _currentUserId;
+    private string? _projectName;
+
+    private record FilterItem(string Key, string Label);
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBoards();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (claim != null) int.TryParse(claim.Value, out _currentUserId);
+
+        try
+        {
+            var projectTask = ProjectService.GetByIdAsync(ProjectId);
+            await System.Threading.Tasks.Task.WhenAll(projectTask);
+
+            _projectName = projectTask.Result?.Name;
+            ProjectContext.SetProject(_projectName);
+        }
+        finally { isLoading = false; }
     }
+
+    protected override void OnInitialized()
+    {
+        SearchService.OnChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        SearchService.OnChanged -= StateHasChanged;
+    }
+
+    private readonly List<FilterItem> _filters = new()
+    {
+        new("all",        "Все"),
+        new("new",        "Новые"),
+        new("inprogress", "В работе"),
+        new("onhold",     "Приостановлены"),
+        new("done",       "Завершённые"),
+        new("overdue",    "Просроченные"),
+    };
+
+    private readonly List<FilterItem> _typeFilters = new()
+    {
+        new("all",      "Все"),
+        new("assignee", "Я исполнитель"),
+        new("created",  "Я создатель"),
+    };
+
+    private int GetFilterCount(string key) => columns
+        .SelectMany(c => c.WorkItems)
+        .Count(t => key switch
+        {
+            "new"        => t.State == TaskState.New,
+            "inprogress" => t.State == TaskState.InProgress,
+            "onhold"     => t.State == TaskState.OnHold,
+            "done"       => t.State == TaskState.Completed,
+            "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
+            _            => true
+        });
 
     protected override async Task OnParametersSetAsync()
     {
@@ -230,6 +333,18 @@ else
             StateHasChanged(); 
             await LoadBoards();
         }
+    }
+
+    private string GetNavButtonStyle(string page)
+    {
+        var path = new Uri(NavManager.Uri).AbsolutePath.ToLower();
+        var isActive = page == "board" ? path.Contains("/board") :
+                    page == "gantt" ? path.Contains("/gantt") :
+                    page == "stats" ? path.Contains("/stats") : false;
+
+        return isActive
+            ? "border-radius:10px; text-transform:none; font-weight:500; border-color:#7c6af7; color:#7c6af7; font-size:13px;"
+            : "border-radius:10px; text-transform:none; font-weight:500; border-color:#2a2a2a; color:#666; font-size:13px;";
     }
 
     private async Task LoadBoards()
@@ -297,6 +412,11 @@ else
         _ = SaveMoveAsync(task.Id, targetColumnId);
     }
 
+    private string FilterButtonStyle =>
+        _showFilters
+            ? "border-radius:10px; text-transform:none; font-weight:500; border-color:#7c6af7; color:#7c6af7; font-size:13px;"
+            : "border-radius:10px; text-transform:none; font-weight:500; border-color:#2a2a2a; color:#666; font-size:13px;";
+
     private async Task OpenTaskDetail(WorkItemResponse task)
     {
         var parameters = new DialogParameters<EditProjectTaskModal>
@@ -310,6 +430,8 @@ else
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
     }
 
+    private void GoToChat(int id) => NavManager.NavigateTo($"/chats?task={id}");
+
     private async Task MarkDone(WorkItemResponse task)
     {
         task.State = TaskState.Completed;
@@ -317,8 +439,20 @@ else
     }
     private async Task Delete(int id)
     {
-        await TaskService.DeleteAsync(id);
-        await LoadColumns();
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Title,   "Удалить задачу?" },
+            { x => x.Message, "Задача будет удалена. Это действие нельзя отменить." },
+            { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
+                {
+                    await TaskService.DeleteAsync(id);
+                    await LoadBoards();
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
     }
 
 
@@ -401,6 +535,27 @@ else
             new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
     }
 
+    private IEnumerable<WorkItemResponse> GetFilteredTasks(ColumnBaseResponse col) =>
+        col.WorkItems
+            .Where(t => _activeFilter switch
+            {
+                "new"        => t.State == TaskState.New,
+                "inprogress" => t.State == TaskState.InProgress,
+                "onhold"     => t.State == TaskState.OnHold,
+                "done"       => t.State == TaskState.Completed,
+                "overdue"    => t.DeadLine < DateTime.Now && t.State != TaskState.Completed,
+                _            => true
+            })
+            .Where(t => _typeFilter switch
+            {
+                "assignee" => t.Assignees.Any(a => a.Id == _currentUserId),
+                "created"  => t.CreatedById == _currentUserId,
+                _          => true
+            })
+            .Where(t => string.IsNullOrWhiteSpace(SearchService.SearchQuery) ||
+                        t.Title.Contains(SearchService.SearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                        (t.Description?.Contains(SearchService.SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
+
     private async Task OpenAddTaskModal(int columnId)
     {
         var options = new DialogOptions
@@ -457,10 +612,15 @@ else
         _                    => "—"
     };
 
-    private string GetDeadlineClass(DateTime date)
+    private string GetDeadlineClass(WorkItemResponse task)
     {
-        if (date < DateTime.Now) return "overdue";
-        if ((date - DateTime.Now).Days <= 2) return "soon";
+        if (task.State == TaskState.Completed)
+            return task.CompletedAt.HasValue && task.CompletedAt.Value <= task.DeadLine 
+                ? "ontime" 
+                : "overdue";
+
+        if (task.DeadLine < DateTime.Now) return "overdue";
+        if ((task.DeadLine - DateTime.Now).Days <= 2) return "soon";
         return "normal";
     }
 }

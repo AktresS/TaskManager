@@ -38,5 +38,7 @@ builder.Services.AddScoped<PinStateService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<ProjectContextService>();
 
 await builder.Build().RunAsync();
