@@ -29,6 +29,7 @@ public class WorkItem
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdateDate { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
 
     [Required]
     public DateTime DeadLine { get; set; }

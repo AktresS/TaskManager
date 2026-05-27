@@ -40,6 +40,8 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
                 Description = w.Description,
                 Priority = w.Priority,
                 State = w.State,
+                CompletedAt = w.CompletedAt,
+                CreatedById = w.CreatedById ?? 0,
                 DeadLine = w.DeadLine,
                 Assignees   = w.Assignees.Select(a => new UserShortDto
                 {

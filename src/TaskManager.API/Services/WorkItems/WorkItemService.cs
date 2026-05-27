@@ -162,6 +162,7 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             CreatedDate = item.CreatedDate,
             DeadLine = item.DeadLine,
             StartDate = item.StartDate,
+            CompletedAt = item.CompletedAt,
             ProjectId = item.ProjectId,
             ProjectName = item.Project?.Name,
             ColumnId = item.ColumnId,
@@ -222,7 +223,18 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
             item.Priority = request.Priority.Value;
         
         if (request.State.HasValue)
+        {
             item.State = request.State.Value;
+            
+            if (request.State.Value == TaskState.InProgress && item.StartDate == null)
+                item.StartDate = DateTime.UtcNow;
+                
+            if (request.State.Value == TaskState.Completed && item.CompletedAt == null)
+                item.CompletedAt = DateTime.UtcNow;
+                
+            if (request.State.Value != TaskState.Completed)
+                item.CompletedAt = null;
+        }
 
         if (request.State.HasValue)
         {

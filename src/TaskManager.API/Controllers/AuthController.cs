@@ -1,6 +1,7 @@
 using BaseLibrary.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TaskManager.Services.Auth;
 
 namespace TaskManager.Controllers
@@ -11,6 +12,7 @@ namespace TaskManager.Controllers
     public class AuthController(IAuthService authService) : ControllerBase
     {
         [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> CreateAsync(Register user)
         {
             if (user == null) return BadRequest("Model is empty");
@@ -19,6 +21,7 @@ namespace TaskManager.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Login(Login user)
         {
             if (user == null) return BadRequest("Model is empty");
