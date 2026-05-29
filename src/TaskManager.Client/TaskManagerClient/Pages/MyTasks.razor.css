@@ -206,6 +206,7 @@
     gap: 0;
     opacity: 0;
     transition: opacity 0.15s ease;
+    align-items: center;
 }
 
 .task-card:hover .task-actions { opacity: 1; }

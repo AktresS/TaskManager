@@ -28,6 +28,7 @@
     <Folder Include="Services\Boards\" />
     <Folder Include="Services\Columns\" />
     <Folder Include="Services\Files\" />
+    <Folder Include="Services\MessageReads\" />
     <Folder Include="Services\Notifications\" />
     <Folder Include="Services\ProjectAuthorization\" />
     <Folder Include="Services\ProjectMembers\" />

@@ -45,10 +45,10 @@
                     <button class="board-tab @(activeBoardId == board.Id ? "active" : "")"
                             @onclick="() => SwitchBoard(board.Id)">
                         @board.Name
-                        @if (boards.Count > 1)
+                        @if (CanManageBoard)
                         {
                             <span class="tab-delete" @onclick:stopPropagation="true"
-                                  @onclick="() => ConfirmDeleteBoard(board)">×</span>
+                            @onclick="() => ConfirmDeleteBoard(board)">×</span>
                         }
                     </button>
                 }
@@ -57,10 +57,11 @@
 
         <MudTooltip Text="Новая доска">
             <MudIconButton Icon="@Icons.Material.Filled.AddBox"
-                           Size="Size.Small"
-                           Style="color:#555;"
-                           OnClick="OpenCreateBoardModal" />
+                        Size="Size.Small"
+                        Style="color:#555;"
+                        OnClick="OpenCreateBoardModal" />
         </MudTooltip>
+        
     </div>
 </div>
 
@@ -119,14 +120,23 @@ else
         @foreach (var column in columns)
         {
             var col = column;
-            <div class="kanban-column"
+            <div class="kanban-column @(draggingColumnId == col.Id ? "column-dragging" : "") @(dragOverColumnId == col.Id ? "column-drag-over" : "")"
                 @key="col.Id"
+                draggable="@(CanManageBoard ? "true" : "false")"
+                @ondragstart="() => OnColumnDragStart(col.Id)"
+                @ondragend="OnColumnDragEnd"
+                @ondragenter="() => { if (draggingColumnId != null && dragOverColumnId != col.Id) { dragOverColumnId = col.Id; StateHasChanged(); } }"
                 @ondragover:preventDefault="true"
-                @ondrop="() => OnDrop(col.Id)"
+                @ondrop="() => OnColumnDrop(col.Id)"
                 @ondrop:preventDefault="true">
 
                 <div class="column-header">
                     <div style="display:flex; align-items:center; gap:8px;">
+                        @if (CanManageBoard)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
+                                    Style="font-size:16px; color:#333; cursor:grab;" />
+                        }
                         <div class="column-dot" style="background:@GetColumnColor(col.Order);"></div>
                         <span class="column-name">@col.Name</span>
                         <span class="column-count">@GetFilteredTasks(col).Count()</span>
@@ -139,12 +149,21 @@ else
                                            Style="color:#444; padding:2px;"
                                            OnClick="() => OpenAddTaskModal(col.Id)" />
                         </MudTooltip>
-                        <MudTooltip Text="Удалить колонку">
-                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
-                                           Size="Size.Small"
-                                           Style="color:#444; padding:2px;"
-                                           OnClick="() => ConfirmDeleteColumn(col)" />
-                        </MudTooltip>
+                        @if (CanManageBoard)
+                        {
+                            <MudTooltip Text="Настройки колонки">
+                                <MudIconButton Icon="@Icons.Material.Filled.Settings"
+                                            Size="Size.Small"
+                                            Style="color:#444; padding:2px;"
+                                            OnClick="() => OpenColumnSettings(col)" />
+                            </MudTooltip>
+                            <MudTooltip Text="Удалить колонку">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                            Size="Size.Small"
+                                            Style="color:#444; padding:2px;"
+                                            OnClick="() => ConfirmDeleteColumn(col)" />
+                            </MudTooltip>
+                        }
                     </div>
                 </div>
 
@@ -161,9 +180,31 @@ else
 
                             <div class="task-card-top">
                                 <div class="priority-dot @GetPriorityDot(t.Priority)"></div>
-                                <span class="state-pill @GetStatePill(t.State)">
-                                    @GetStateLabel(t.State)
-                                </span>
+                                
+                                <div @onclick:stopPropagation="true" style="position:relative;">
+                                    <MudMenu @ref="_stateMenus[t.Id]"
+                                            AnchorOrigin="Origin.BottomLeft"
+                                            TransformOrigin="Origin.TopLeft"
+                                            Dense="true">
+                                        <ChildContent>
+                                            @foreach (var state in Enum.GetValues<TaskState>())
+                                            {
+                                                var s = state;
+                                                <MudMenuItem OnClick="() => ChangeState(t, s)">
+                                                    <div style="display:flex; align-items:center; gap:8px;">
+                                                        <div style="width:8px; height:8px; border-radius:50%; background:@GetStateColor(s);"></div>
+                                                        @GetStateLabel(s)
+                                                    </div>
+                                                </MudMenuItem>
+                                            }
+                                        </ChildContent>
+                                    </MudMenu>
+                                    <span class="state-pill @GetStatePill(t.State)"
+                                        style="cursor:pointer;"
+                                        @onclick="args => { if (_stateMenus.TryGetValue(t.Id, out var m) && m != null) m.OpenMenuAsync(args); }">
+                                        @GetStateLabel(t.State)
+                                    </span>
+                                </div>
                             </div>
 
                             <div class="task-title">@t.Title</div>
@@ -200,36 +241,39 @@ else
                                         <div class="avatar-chip more">+@(task.Assignees.Count - 3)</div>
                                     }
                                 </div>
+
                                 <div @onclick:stopPropagation="true">
                                     <MudTooltip Text="Чат задачи">
                                         <MudIconButton Icon="@Icons.Material.Filled.Forum"
-                                                        Size="Size.Small"
-                                                        Style="color:#444; padding:2px;"
-                                                        OnClick="() => GoToChat(t.Id)" />
-                                                                            </MudTooltip>
+                                                    Size="Size.Small"
+                                                    Style="color:#444; padding:2px;"
+                                                    OnClick="() => GoToChat(t.Id)" />
+                                    </MudTooltip>
 
-                                    @if (t.State != TaskState.Completed)
+                                    @if (CanEditTask(t))
                                     {
-                                        <MudTooltip Text="Завершить">
-                                            <MudIconButton Icon="@Icons.Material.Filled.CheckCircleOutline"
+                                        @if (t.State != TaskState.Completed)
+                                        {
+                                            <MudTooltip Text="Завершить">
+                                                <MudIconButton Icon="@Icons.Material.Filled.CheckCircleOutline"
+                                                            Size="Size.Small"
+                                                            Style="color:#444; padding:2px;"
+                                                            OnClick="() => MarkDone(t)" />
+                                            </MudTooltip>
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                                    Style="font-size:16px; color:#22c55e;" />
+                                        }
+
+                                        <MudTooltip Text="Удалить">
+                                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                                         Size="Size.Small"
-                                                        Style="color:#444; padding:2px;"
-                                                        OnClick="() => MarkDone(t)"/>
+                                                        Style="color:#444; padding:4px;"
+                                                        OnClick="() => Delete(t.Id)" />
                                         </MudTooltip>
                                     }
-                                    else
-                                    {
-                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                                Style="font-size:16px; color:#22c55e; margin-left:auto;" />
-                                    }
-
-
-                                    <MudTooltip Text="Удалить">
-                                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
-                                                    Size="Size.Small"
-                                                    Style="color:#444; padding:4px;"
-                                                    OnClick="() => Delete(t.Id)" />
-                                    </MudTooltip>
                                 </div>
                             </div>
 
@@ -249,9 +293,10 @@ else
 
 @code {
     [Parameter] public int ProjectId { get; set; }
-
+    private MudMenu _testMenu = default!;
     private List<BoardBaseResponse> boards = new();
     private List<ColumnBaseResponse> columns = new();
+    private Dictionary<int, MudMenu> _stateMenus = new();
     private int? activeBoardId;
     private bool isLoading = true;
     private int? draggingTaskId;
@@ -262,6 +307,11 @@ else
     private string _typeFilter = "all";
     private int _currentUserId;
     private string? _projectName;
+    private MemberRole? _currentUserRole;
+    private int? draggingColumnId;
+    private int? dragOverColumnId;
+
+    private bool CanManageBoard => _currentUserRole == MemberRole.Owner || _currentUserRole == MemberRole.Admin;
 
     private record FilterItem(string Key, string Label);
 
@@ -271,13 +321,33 @@ else
         var claim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
         if (claim != null) int.TryParse(claim.Value, out _currentUserId);
 
+        // Проверяем boardId в URL
+        var uri = new Uri(NavManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var boardIdParam = query["boardId"];
+        Console.WriteLine($"boardIdParam: {boardIdParam}");
+
         try
         {
             var projectTask = ProjectService.GetByIdAsync(ProjectId);
-            await System.Threading.Tasks.Task.WhenAll(projectTask);
+            var roleTask    = MemberService.GetMyRoleAsync(ProjectId);
+            await System.Threading.Tasks.Task.WhenAll(projectTask, roleTask);
 
             _projectName = projectTask.Result?.Name;
+            _currentUserRole  = roleTask.Result;
             ProjectContext.SetProject(_projectName);
+
+            await LoadBoards();
+
+            if (!string.IsNullOrEmpty(boardIdParam) && int.TryParse(boardIdParam, out var boardId))
+            {
+                var targetBoard = boards.FirstOrDefault(b => b.Id == boardId);
+                if (targetBoard != null && activeBoardId != targetBoard.Id)
+                {
+                    activeBoardId = targetBoard.Id;
+                    await LoadColumns();
+                }
+            }
         }
         finally { isLoading = false; }
     }
@@ -321,6 +391,64 @@ else
             _            => true
         });
 
+    private void OnColumnDragStart(int columnId)
+    {
+        if (draggingTaskId is not null) return;
+        draggingColumnId = columnId;
+    }
+
+    private void OnColumnDragEnd()
+    {
+        draggingColumnId = null;
+        dragOverColumnId = null;
+    }
+
+    private async Task OnColumnDrop(int targetColumnId)
+    {
+        if (draggingTaskId is not null)
+        {
+            draggingColumnId = null;
+            dragOverColumnId = null;
+            await OnDrop(targetColumnId);
+            return;
+        }
+
+        if (draggingColumnId is null || draggingColumnId == targetColumnId)
+        {
+            draggingColumnId = null;
+            dragOverColumnId = null;
+            return;
+        }
+
+        var sourceCol = columns.FirstOrDefault(c => c.Id == draggingColumnId);
+        var targetCol = columns.FirstOrDefault(c => c.Id == targetColumnId);
+
+        if (sourceCol is null || targetCol is null) return;
+
+        var sourceOrder = sourceCol.Order;
+        var targetOrder = targetCol.Order;
+
+        sourceCol.Order = targetOrder;
+        targetCol.Order = sourceOrder;
+
+        columns = columns.OrderBy(c => c.Order).ToList();
+
+        draggingColumnId = null;
+        dragOverColumnId = null;
+
+        _ = ColumnService.UpdateAsync(sourceCol.Id, activeBoardId!.Value, 
+            new UpdateColumnRequest { Order = sourceCol.Order });
+        _ = ColumnService.UpdateAsync(targetCol.Id, activeBoardId!.Value, 
+            new UpdateColumnRequest { Order = targetCol.Order });
+    }
+
+    private void OnColumnDragOver(int columnId)
+    {
+        if (draggingColumnId is null) return;
+        if (dragOverColumnId == columnId) return;
+            dragOverColumnId = columnId;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         if (ProjectId != _loadedProjectId)
@@ -332,6 +460,20 @@ else
             isLoading = true;
             StateHasChanged(); 
             await LoadBoards();
+        }
+
+        var uri = new Uri(NavManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var boardIdParam = query["boardId"];
+
+        if (!string.IsNullOrEmpty(boardIdParam) && int.TryParse(boardIdParam, out var boardId))
+        {
+            if (boards.Any() && activeBoardId != boardId)
+            {
+                var targetBoard = boards.FirstOrDefault(b => b.Id == boardId);
+                if (targetBoard != null)
+                    await SwitchBoard(targetBoard.Id);
+            }
         }
     }
 
@@ -407,7 +549,17 @@ else
         if (task is null || sourceCol is null || sourceCol.Id == targetColumnId) return;
 
         sourceCol.WorkItems.Remove(task);
-        columns.First(c => c.Id == targetColumnId).WorkItems.Add(task);
+        var targetCol = columns.First(c => c.Id == targetColumnId);
+        targetCol.WorkItems.Add(task);  // только один раз
+
+        if (targetCol.AutoStatus.HasValue)
+        {
+            task.State = targetCol.AutoStatus.Value;
+            if (targetCol.AutoStatus.Value == TaskState.Completed)
+                task.CompletedAt = DateTime.UtcNow;
+            else
+                task.CompletedAt = null;
+        }
 
         _ = SaveMoveAsync(task.Id, targetColumnId);
     }
@@ -419,6 +571,7 @@ else
 
     private async Task OpenTaskDetail(WorkItemResponse task)
     {
+        if (!CanEditTask(task)) return;
         var parameters = new DialogParameters<EditProjectTaskModal>
         {
             { x => x.WorkItem, task },
@@ -430,12 +583,37 @@ else
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
     }
 
+    private bool CanEditTask(WorkItemResponse task) =>
+            task.CreatedById == _currentUserId ||
+            _currentUserRole == MemberRole.Owner ||
+            _currentUserRole == MemberRole.Admin;
+
+    private async Task ChangeState(WorkItemResponse task, TaskState newState)
+    {
+        if (task.State == newState) return;
+        var updated = await TaskService.UpdateAsync(task.Id, 
+            new UpdateWorkItemRequest { State = newState });
+        task.State       = updated.State;
+        task.CompletedAt = updated.CompletedAt;
+    }
+
+    private string GetStateColor(TaskState? s) => s switch
+    {
+        TaskState.InProgress => "#7c6af7",
+        TaskState.Completed  => "#22c55e",
+        TaskState.OnHold     => "#f59e0b",
+        _                    => "#555"
+    };
+
     private void GoToChat(int id) => NavManager.NavigateTo($"/chats?task={id}");
 
     private async Task MarkDone(WorkItemResponse task)
     {
-        task.State = TaskState.Completed;
-        _ = TaskService.UpdateAsync(task.Id, new UpdateWorkItemRequest { State = TaskState.Completed });
+        var updated = await TaskService.UpdateAsync(task.Id, 
+            new UpdateWorkItemRequest { State = TaskState.Completed });
+        
+        task.State       = updated.State;
+        task.CompletedAt = updated.CompletedAt;
     }
     private async Task Delete(int id)
     {
@@ -446,7 +624,7 @@ else
             { x => x.OnConfirm, EventCallback.Factory.Create(this, async () =>
                 {
                     await TaskService.DeleteAsync(id);
-                    await LoadBoards();
+                    await LoadColumns();
                 })
             }
         };
@@ -579,6 +757,23 @@ else
         };
 
         await DialogService.ShowAsync<CreateProjectTaskModal>("", parameters, options);
+    }
+
+    private async Task OpenColumnSettings(ColumnBaseResponse column)
+    {
+        var parameters = new DialogParameters<ColumnSettingsModal>
+        {
+            { x => x.Column, column },
+            { x => x.OnSave, EventCallback.Factory.Create<UpdateColumnRequest>(this, async request =>
+                {
+                    await ColumnService.UpdateAsync(column.Id, activeBoardId!.Value, request);
+                    column.AutoStatus = request.ClearAutoStatus ? null : request.AutoStatus;
+                })
+            }
+        };
+
+        await DialogService.ShowAsync<ColumnSettingsModal>("", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseOnEscapeKey = true });
     }
 
     private static readonly string[] _columnColors =

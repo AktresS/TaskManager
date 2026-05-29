@@ -6,11 +6,13 @@ using TaskManager.Data;
 
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.WorkItemAssignees;
 
-public class WorkItemAssigneeService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth) : IWorkItemAssigneeService
+public class WorkItemAssigneeService(AppDbContext context, ICurrentUserService currentUser, 
+                    IProjectAuthorizationService auth, INotificationSender sender) : IWorkItemAssigneeService
 {
     public async Task AddAsync(int workItemId, AddAssigneeRequest request)
     {
@@ -54,6 +56,39 @@ public class WorkItemAssigneeService(AppDbContext context, ICurrentUserService c
         }
 
         await context.SaveChangesAsync();
+        
+        var workItem = await context.WorkItems
+            .FirstOrDefaultAsync(x => x.WorkItemId == workItemId);
+
+        foreach (var userId in request.UserId)
+        {
+            if (userId == currentUser.UserId) continue;
+
+            var link = "/my-tasks";
+            if (workItem!.ProjectId.HasValue)
+            {
+                if (workItem.ColumnId.HasValue)
+                {
+                    var column = await context.BoardColumns
+                        .Include(x => x.Board)
+                        .FirstOrDefaultAsync(x => x.Id == workItem.ColumnId.Value);
+
+                    link = column != null
+                        ? $"/projects/{workItem.ProjectId.Value}/board?boardId={column.BoardId}"
+                        : $"/projects/{workItem.ProjectId.Value}/board";
+                }
+                else
+                {
+                    link = $"/projects/{workItem.ProjectId.Value}/board";
+                }
+            }
+
+            await sender.SendAsync(
+                userId,
+                $"Вы назначены исполнителем задачи «{workItem!.Title}»",
+                NotificationType.AssignedToTask,
+                link);
+        }
     }
 
     public async Task<List<WorkItemAssigneeResponse>> GetAsync(int workItemId)

@@ -12,4 +12,5 @@ public class ProjectMessageResponse
     public string? AttachmentUrl { get; set; }
     public string? AttachmentName { get; set; }
     public DateTime SentDate { get; set; } = DateTime.UtcNow;
+    public List<int> ReadByUserIds { get; set; } = new();
 }

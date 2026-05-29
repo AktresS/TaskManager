@@ -31,4 +31,5 @@ public class ProjectMessage
 
     [ForeignKey("UserId")]
     public User User { get; set; } = null!;
+    public ICollection<ProjectMessageRead> Reads { get; set; } = new List<ProjectMessageRead>();
 }

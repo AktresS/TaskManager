@@ -15,6 +15,7 @@ using TaskManager.Services.Boards;
 using TaskManager.Services.Columns;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.Files;
+using TaskManager.Services.MessageReads;
 using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 using TaskManager.Services.ProjectMembers;
@@ -36,8 +37,8 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", o =>
     {
-        o.PermitLimit = 5;                        
-        o.Window = TimeSpan.FromMinutes(2);
+        o.PermitLimit = 15;                        
+        o.Window = TimeSpan.FromMinutes(1);
         o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         o.QueueLimit = 0; 
     });
@@ -74,6 +75,7 @@ builder.Services.AddScoped<IColumnService, ColumnService>();
 builder.Services.AddScoped<INotificationSender, NotificationSender>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IMessageReadService, MessageReadService>();
 
 builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
 

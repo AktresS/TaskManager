@@ -34,5 +34,5 @@ public class WorkItemMessage
 
     [ForeignKey("UserId")]
     public User User { get; set; } = null!;
-
+    public ICollection<WorkItemMessageRead> Reads { get; set; } = new List<WorkItemMessageRead>();
 }

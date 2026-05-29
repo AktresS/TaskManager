@@ -12,7 +12,7 @@ public class BoardService(AppDbContext context, IProjectAuthorizationService pro
 {
     public async Task<BoardBaseResponse> CreateAsync(int projectId, CreateBoardRequest request)
     {
-        await projectAuthService.EnsureMember(projectId);
+        await projectAuthService.EnsureAdmin(projectId);
 
         var board = new Board
         {
@@ -51,7 +51,7 @@ public class BoardService(AppDbContext context, IProjectAuthorizationService pro
         if (board is null)
             throw new Exception("Board not found");
 
-        await projectAuthService.EnsureMember(board.ProjectId);
+        await projectAuthService.EnsureAdmin(board.ProjectId);
 
         context.Boards.Remove(board);
         await context.SaveChangesAsync();

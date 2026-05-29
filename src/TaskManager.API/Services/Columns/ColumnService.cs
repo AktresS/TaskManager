@@ -33,6 +33,7 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
             Id = x.Id,
             Name = x.Name,
             Order = x.Order,
+            AutoStatus = x.AutoStatus,
             WorkItems = x.WorkItems.Select(w => new WorkItemResponse
             {
                 Id = w.WorkItemId,
@@ -101,6 +102,11 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
         if (request.Order.HasValue)
             column.Order = request.Order.Value;
 
+        if (request.ClearAutoStatus)
+            column.AutoStatus = null;
+        else if (request.AutoStatus.HasValue)
+            column.AutoStatus = request.AutoStatus.Value;
+
         await context.SaveChangesAsync();
 
         return new ColumnBaseResponse
@@ -120,7 +126,7 @@ public class ColumnService(AppDbContext context, IProjectAuthorizationService pr
         if (column == null)
             throw new Exception("Column not found");
 
-        await projectAuthService.EnsureMember(column.Board.ProjectId);
+        await projectAuthService.EnsureAdmin(column.Board.ProjectId);
 
         context.BoardColumns.Remove(column);
         await context.SaveChangesAsync();

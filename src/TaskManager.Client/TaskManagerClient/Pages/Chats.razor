@@ -208,13 +208,26 @@
                                     {
                                         <div class="message-actions">
                                             <MudIconButton Icon="@Icons.Material.Filled.EditNote"
-                                                           Size="Size.Small"
-                                                           Style="color:#555; padding:2px;"
-                                                           OnClick="() => StartEdit(msg)" />
+                                                        Size="Size.Small"
+                                                        Style="color:#555; padding:2px;"
+                                                        OnClick="() => StartEdit(msg)" />
                                             <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
-                                                           Size="Size.Small"
-                                                           Style="color:#555; padding:2px;"
-                                                           OnClick="() => DeleteMessage(msg)" />
+                                                        Size="Size.Small"
+                                                        Style="color:#555; padding:2px;"
+                                                        OnClick="() => DeleteMessage(msg)" />
+                                        </div>
+
+                                        <div style="display:flex; align-items:center; margin-left:4px;">
+                                            @if (msg.ReadByUserIds.Any(id => id != _currentUserId))
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.DoneAll"
+                                                        Style="font-size:14px; color:#7c6af7;" />
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Done"
+                                                        Style="font-size:14px; color:#555;" />
+                                            }
                                         </div>
                                     }
                                 </div>
@@ -291,6 +304,7 @@
     private bool _uploadingAttachment = false;
     private string? _pendingAttachmentUrl;
     private string? _pendingAttachmentName;
+    public List<int> ReadByUserIds { get; set; } = new();
 
     private record ChatEntry(string Id, string Title, string SubTitle, bool IsProject, string EntityId);
 
@@ -304,6 +318,7 @@
         public string? AttachmentUrl { get; set; }
         public string? AttachmentName { get; set; }
         public DateTime SentDate { get; set; }
+        public List<int> ReadByUserIds { get; set; } = new();
     }
 
     private List<ProjectResponse> FilteredProjectChats => _projects
@@ -421,7 +436,8 @@
                     Text          = m.Text,
                     AttachmentUrl = m.AttachmentUrl,
                     AttachmentName = m.AttachmentName,
-                    SentDate      = m.SentDate
+                    SentDate      = m.SentDate,
+                    ReadByUserIds = m.ReadByUserIds
                 }).ToList();
             }
             else
@@ -437,7 +453,8 @@
                     Text          = m.Text,
                     AttachmentUrl = m.AttachmentUrl,
                     AttachmentName = m.AttachmentName,
-                    SentDate      = m.SentDate
+                    SentDate      = m.SentDate,
+                    ReadByUserIds = m.ReadByUserIds
                 }).ToList();
             }
         }
@@ -445,7 +462,28 @@
         {
             _loadingMessages = false;
             _shouldScroll = true; 
+
+            _ = MarkMessagesRead();
         }
+    }
+
+    private async Task MarkMessagesRead()
+    {
+        if (_activeChat is null) return;
+
+        if (_activeChat.IsProject)
+        {
+            var projectId = int.Parse(_activeChat.EntityId);
+            await ProjectMessageService.MarkReadAsync(projectId);
+        }
+        else
+        {
+            var taskId = int.Parse(_activeChat.EntityId);
+            await TaskMessageService.MarkReadAsync(taskId);
+        }
+
+        foreach (var msg in _messages.Where(m => !m.ReadByUserIds.Contains(_currentUserId)))
+            msg.ReadByUserIds.Add(_currentUserId);
     }
 
     private async Task SendMessage()

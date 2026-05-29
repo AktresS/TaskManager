@@ -1,0 +1,109 @@
+﻿@namespace TaskManagerClient.Components.Modals
+
+<MudDialog>
+    <TitleContent>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Style="color:#7c6af7;" />
+            <MudText Typo="Typo.h6" Style="font-weight:700; color:#eaeaea;">
+                Настройки колонки «@Column.Name»
+            </MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="min-width:360px;">
+
+            <!-- Автосмена статуса -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <div>
+                    <div style="font-size:14px; color:#ddd; font-weight:500;">
+                        Автоматически менять статус
+                    </div>
+                    <div style="font-size:12px; color:#555; margin-top:2px;">
+                        Задачи попадающие в эту колонку будут автоматически менять статус
+                    </div>
+                </div>
+                <MudSwitch Value="_enabled"
+                           ValueChanged="@((bool v) => { _enabled = v; })"
+                           Color="Color.Primary"
+                           T="bool" />
+            </div>
+
+            @if (_enabled)
+            {
+                <MudSelect T="TaskState"
+                           @bind-Value="_selectedStatus"
+                           Label="Статус при попадании в колонку"
+                           Variant="Variant.Outlined"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var s in Enum.GetValues<TaskState>())
+                    {
+                        <MudSelectItem Value="s">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:8px; height:8px; border-radius:50%; background:@GetStateColor(s);"></div>
+                                @GetStateLabel(s)
+                            </div>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Text"
+                   Style="color:#555; text-transform:none; font-weight:500;">
+            Отмена
+        </MudButton>
+        <MudButton OnClick="Save"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Style="border-radius:8px; text-transform:none; font-weight:600;">
+            Сохранить
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ColumnBaseResponse Column { get; set; } = default!;
+    [Parameter] public EventCallback<UpdateColumnRequest> OnSave { get; set; }
+
+    private bool _enabled;
+    private TaskState _selectedStatus = TaskState.InProgress;
+
+    protected override void OnInitialized()
+    {
+        _enabled         = Column.AutoStatus.HasValue;
+        _selectedStatus  = Column.AutoStatus ?? TaskState.InProgress;
+    }
+
+    private async Task Save()
+    {
+        var request = _enabled
+            ? new UpdateColumnRequest { AutoStatus = _selectedStatus }
+            : new UpdateColumnRequest { ClearAutoStatus = true };
+
+        await OnSave.InvokeAsync(request);
+        MudDialog.Close();
+    }
+
+    private string GetStateColor(TaskState s) => s switch
+    {
+        TaskState.InProgress => "#7c6af7",
+        TaskState.Completed  => "#22c55e",
+        TaskState.OnHold     => "#f59e0b",
+        _                    => "#555"
+    };
+
+    private string GetStateLabel(TaskState s) => s switch
+    {
+        TaskState.New        => "Новая",
+        TaskState.InProgress => "В работе",
+        TaskState.OnHold     => "Приостановлена",
+        TaskState.Completed  => "Завершена",
+        _                    => s.ToString()
+    };
+}

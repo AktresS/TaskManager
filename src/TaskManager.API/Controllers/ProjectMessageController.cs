@@ -3,6 +3,7 @@ using BaseLibrary.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using TaskManager.Services.MessageReads;
 using TaskManager.Services.ProjectMessages;
 
 namespace TaskManager.Controllers
@@ -26,6 +27,13 @@ namespace TaskManager.Controllers
             var result = await service.CreateAsync(projectId, request);
 
             return Ok(result);
+        }
+
+        [HttpPost("read")]
+        public async Task<IActionResult> MarkRead(int projectId, [FromServices] IMessageReadService readService)
+        {
+            await readService.MarkProjectMessagesReadAsync(projectId);
+            return NoContent();
         }
 
         [HttpPut("{messageId}")]

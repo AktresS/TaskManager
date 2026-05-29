@@ -1,4 +1,5 @@
 using System;
+using BaseLibrary.Enums;
 
 namespace TaskManager.Models;
 
@@ -13,4 +14,5 @@ public class BoardColumn
     public Board Board { get; set; } = null!;
 
     public List<WorkItem> WorkItems { get; set; } = new();
+    public TaskState? AutoStatus { get; set; }
 }

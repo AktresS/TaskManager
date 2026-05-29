@@ -18,7 +18,7 @@ public class NotificationSender(AppDbContext context, IHubContext<NotificationHu
             if (!settings.NotificationsEnabled) return;
 
             if (type == NotificationType.DeadlineReminder && !settings.DeadlineNotificationsEnabled) return;
-            if (type is NotificationType.NewProjectMessage or NotificationType.NewWorkItemMessage 
+            if (type is NotificationType.NewProjectMessage or NotificationType.NewWorkItemMessage or NotificationType.AssignedToTask
                 && !settings.MessageNotificationsEnabled) return;
         }
 

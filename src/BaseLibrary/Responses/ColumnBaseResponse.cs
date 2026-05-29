@@ -1,4 +1,6 @@
 
+using BaseLibrary.Enums;
+
 namespace BaseLibrary.Responses;
 
 public class ColumnBaseResponse
@@ -7,4 +9,5 @@ public class ColumnBaseResponse
     public string Name { get; set; } = string.Empty;
     public int Order { get; set; }
     public List<WorkItemResponse> WorkItems { get; set; } = new();
+    public TaskState? AutoStatus { get; set; }
 }

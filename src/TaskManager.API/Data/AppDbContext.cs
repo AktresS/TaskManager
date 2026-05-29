@@ -21,6 +21,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserPinnedProject> PinnedProjects { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<UserSettings> UserSettings { get; set; }
+    public DbSet<ProjectMessageRead> ProjectMessageReads { get; set; }
+    public DbSet<WorkItemMessageRead> WorkItemMessageReads { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +38,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.ApplyConfiguration(new UserPinnedProjectConfiguration());
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
         modelBuilder.ApplyConfiguration(new UserSettingsConfiguration());
+        modelBuilder.ApplyConfiguration(new ProjectMessageReadConfiguration());
+        modelBuilder.ApplyConfiguration(new WorkItemMessageReadConfiguration());
 
         base.OnModelCreating(modelBuilder);
     }
@@ -268,5 +272,45 @@ public class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
                .WithOne(x => x.Settings)
                .HasForeignKey<UserSettings>(x => x.UserId)
                .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class ProjectMessageReadConfiguration : IEntityTypeConfiguration<ProjectMessageRead>
+{
+    public void Configure(EntityTypeBuilder<ProjectMessageRead> builder)
+    {
+        builder.HasKey(x => x.Id);
+
+        builder.HasOne(x => x.Message)
+               .WithMany(x => x.Reads)
+               .HasForeignKey(x => x.MessageId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.User)
+               .WithMany()
+               .HasForeignKey(x => x.UserId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => new { x.MessageId, x.UserId }).IsUnique();
+    }
+}
+
+public class WorkItemMessageReadConfiguration : IEntityTypeConfiguration<WorkItemMessageRead>
+{
+    public void Configure(EntityTypeBuilder<WorkItemMessageRead> builder)
+    {
+        builder.HasKey(x => x.Id);
+
+        builder.HasOne(x => x.Message)
+               .WithMany(x => x.Reads)
+               .HasForeignKey(x => x.MessageId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.User)
+               .WithMany()
+               .HasForeignKey(x => x.UserId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => new { x.MessageId, x.UserId }).IsUnique();
     }
 }

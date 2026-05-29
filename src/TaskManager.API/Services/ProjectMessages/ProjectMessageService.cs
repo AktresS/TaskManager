@@ -95,6 +95,9 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
         await auth.EnsureMember(projectId);
 
         return await context.ProjectMessages
+            .Include(p => p.User)
+            .Include(p => p.Project)
+            .Include(p => p.Reads)
             .Where(p => p.ProjectId == projectId)
             .OrderBy(x => x.SentDate)
             .Select(p => new ProjectMessageResponse
@@ -108,7 +111,8 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
                 Text = p.Text,
                 AttachmentUrl = p.AttachmentUrl,
                 AttachmentName = p.AttachmentName,
-                SentDate = p.SentDate
+                SentDate = p.SentDate,
+                ReadByUserIds  = p.Reads.Select(r => r.UserId).ToList()
             }).ToListAsync();
     }
 

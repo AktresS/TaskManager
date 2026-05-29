@@ -120,6 +120,15 @@
     transition: opacity 0.15s ease;
 }
 
+.column-dragging {
+    opacity: 0.4;
+}
+
+.column-drag-over {
+    border-color: #7c6af7 !important;
+    background: rgba(124, 106, 247, 0.04);
+}
+
 .kanban-column {
     min-width: 280px;
     max-width: 280px;

@@ -44,6 +44,12 @@ public class ProjectMessageService(GetHttpClient getHttpClient) : IProjectMessag
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
     }
 
+    public async Task MarkReadAsync(int projectId)
+    {
+        var client = await getHttpClient.GetPrivateHttpClient();
+        await client.PostAsync($"{BaseUrl}/{projectId}/messages/read", null);
+    }
+
     public async Task DeleteAsync(int projectId, int messageId)
     {
         var client = await getHttpClient.GetPrivateHttpClient();

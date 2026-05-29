@@ -2,6 +2,7 @@ using System;
 using System.Net.Http.Json;
 using System.Text.Json;
 using BaseLibrary.DTOs.ProjectMemberDtos;
+using BaseLibrary.Enums;
 using BaseLibrary.Responses;
 using ClientLibrary.Helpers;
 using ClientLibrary.Services.Contracts;
@@ -19,6 +20,12 @@ public class ProjectMemberService(GetHttpClient getHttpClient) : IProjectMemberS
         var content = await result.Content.ReadAsStringAsync();
         if (!result.IsSuccessStatusCode)
             throw new Exception(content);
+    }
+
+    public async Task<MemberRole?> GetMyRoleAsync(int projectId)
+    {
+        var client = await getHttpClient.GetPrivateHttpClient();
+        return await client.GetFromJsonAsync<MemberRole?>($"{BaseUrl}/{projectId}/members/my-role");
     }
 
     public async Task<List<ProjectMemberResponse>> GetMembersAsync(int projectId)

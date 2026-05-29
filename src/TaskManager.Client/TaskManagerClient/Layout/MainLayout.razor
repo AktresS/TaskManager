@@ -280,6 +280,7 @@
 
     private async Task OnNotificationClick(NotificationResponse n)
     {
+        Console.WriteLine($"Link: {n.Link}"); 
         _notificationsOpen = false;
         if (!n.IsRead)
             await NotificationService.MarkReadAsync(n.NotificationId);
@@ -292,6 +293,9 @@
         NotificationType.DeadlineReminder    => Icons.Material.Filled.Schedule,
         NotificationType.NewProjectMessage   => Icons.Material.Filled.Forum,
         NotificationType.NewWorkItemMessage  => Icons.Material.Filled.Chat,
+        NotificationType.AssignedToTask     => Icons.Material.Filled.PersonAdd,
+        NotificationType.AddedToProject     => Icons.Material.Filled.FolderShared,
+        NotificationType.TaskCompleted => Icons.Material.Filled.CheckCircle,
         _                                    => Icons.Material.Filled.Notifications
     };
 
@@ -300,6 +304,9 @@
         NotificationType.DeadlineReminder    => "#d97706",
         NotificationType.NewProjectMessage   => "#2563eb",
         NotificationType.NewWorkItemMessage  => "#059669",
+        NotificationType.AssignedToTask     => "#7c6af7",
+        NotificationType.AddedToProject     => "#0891b2",
+        NotificationType.TaskCompleted => "#22c55e",
         _                                    => "#555"
     };
 

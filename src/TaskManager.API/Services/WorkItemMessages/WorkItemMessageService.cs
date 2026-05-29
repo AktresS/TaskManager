@@ -95,7 +95,8 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
             Text = message.Text,
             AttachmentUrl = message.AttachmentUrl,
             AttachmentName = message.AttachmentName,
-            SentDate = message.SentDate
+            SentDate = message.SentDate,
+            ReadByUserIds = message.Reads.Select(r => r.UserId).ToList()
         };
     }
 
@@ -105,6 +106,7 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
 
         var messages = await context.WorkItemMessages
             .Include(x => x.User)
+            .Include(x => x.Reads)
             .Where(x => x.WorkItemId == workItemId)
             .OrderBy(x => x.SentDate)
             .ToListAsync();

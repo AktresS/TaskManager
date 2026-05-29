@@ -44,6 +44,12 @@ public class WorkItemMessageService(GetHttpClient getHttpClient) : IWorkItemMess
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
     }
 
+    public async Task MarkReadAsync(int workItemId)
+    {
+        var client = await getHttpClient.GetPrivateHttpClient();
+        await client.PostAsync($"{BaseUrl}/{workItemId}/messages/read", null);
+    }
+
     public async Task Delete(int workItemId, int messageId)
     {
         var client = await getHttpClient.GetPrivateHttpClient();

@@ -6,11 +6,13 @@ using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
 using TaskManager.Services.CurrentUser;
+using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.WorkItems;
 
-public class WorkItemService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth) : IWorkItemService
+public class WorkItemService(AppDbContext context, ICurrentUserService currentUser, 
+                                IProjectAuthorizationService auth, INotificationSender sender) : IWorkItemService
 {
     public async Task<WorkItemResponse> CreatePersonalAsync(CreatePersonalWorkItemRequest request)
     {
@@ -88,6 +90,20 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
 
         context.WorkItemAssignees.AddRange(assigneesToAdd);
         await context.SaveChangesAsync();
+
+        var boardId = column.BoardId;
+        var link = $"/projects/{projectId}/board?boardId={boardId}";
+
+        foreach (var a in assigneesToAdd)
+        {
+            if (a.UserId == currentUser.UserId) continue;
+
+            await sender.SendAsync(
+                a.UserId,
+                $"Вы назначены исполнителем задачи «{item.Title}»",
+                NotificationType.AssignedToTask,
+                link);
+        }
 
         return await GetByIdAsync(item.WorkItemId);
     }
@@ -250,6 +266,24 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
 
         await context.SaveChangesAsync();
 
+        if (request.State.HasValue && 
+            request.State.Value == TaskState.Completed && 
+            item.CreatedById.HasValue &&
+            item.CreatedById.Value != currentUser.UserId)
+        {
+            var link = item.ProjectId.HasValue
+                ? item.ColumnId.HasValue
+                    ? $"/projects/{item.ProjectId.Value}/board?boardId={(await context.BoardColumns.FindAsync(item.ColumnId.Value))?.BoardId}"
+                    : $"/projects/{item.ProjectId.Value}/board"
+                : "/my-tasks";
+
+            await sender.SendAsync(
+                item.CreatedById.Value,
+                $"Задача «{item.Title}» завершена",
+                NotificationType.TaskCompleted,
+                link);
+        }
+
         return await GetByIdAsync(item.WorkItemId);
     }
 
@@ -274,6 +308,19 @@ public class WorkItemService(AppDbContext context, ICurrentUserService currentUs
 
         // (опционально) обновление позиции
         // item.Order = request.Order;
+        if (column.AutoStatus.HasValue)
+        {
+            item.State = column.AutoStatus.Value;
+            
+            if (column.AutoStatus.Value == TaskState.Completed && item.CompletedAt == null)
+                item.CompletedAt = DateTime.UtcNow;
+            
+            if (column.AutoStatus.Value != TaskState.Completed)
+                item.CompletedAt = null;
+            
+            if (column.AutoStatus.Value == TaskState.InProgress && item.StartDate == null)
+                item.StartDate = DateTime.UtcNow;
+        }
 
         await context.SaveChangesAsync();
     }

@@ -29,7 +29,10 @@ public enum NotificationType
 {
     DeadlineReminder,
     NewProjectMessage,
-    NewWorkItemMessage
+    NewWorkItemMessage,
+    AssignedToTask,
+    AddedToProject,
+    TaskCompleted
 }
 
 public enum MessageType

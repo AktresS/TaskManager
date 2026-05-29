@@ -1,13 +1,15 @@
 using BaseLibrary.DTOs.ProjectMemberDtos;
+using BaseLibrary.Enums;
 using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
+using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.ProjectMembers;
 
-public class ProjectMemberService(AppDbContext context, IProjectAuthorizationService auth) : IProjectMemberService
+public class ProjectMemberService(AppDbContext context, IProjectAuthorizationService auth, INotificationSender sender) : IProjectMemberService
 {
     public async Task<List<ProjectMemberResponse>> GetMembersAsync(int projectId)
     {
@@ -47,6 +49,13 @@ public class ProjectMemberService(AppDbContext context, IProjectAuthorizationSer
         context.ProjectMembers.Add(member);
 
         await context.SaveChangesAsync();
+
+        var project = await context.Projects.FindAsync(projectId);
+        await sender.SendAsync(
+            request.UserId,
+            $"Вы добавлены в проект «{project!.Name}»",
+            NotificationType.AddedToProject,
+            $"/projects/{projectId}/board");
     }
 
     public async Task<ProjectMemberRoleResponse> UpdateProjectMemberRole(int projectId, int userId, UpdateProjectRoleRequest request)
@@ -69,6 +78,18 @@ public class ProjectMemberService(AppDbContext context, IProjectAuthorizationSer
             UserName = member.User?.Name ?? "Who Are U?",
             Role = member.Role
         };
+    }
+
+    public async Task<MemberRole?> GetMyRoleAsync(int projectId)
+    {
+        try
+        {
+            return await auth.GetUserRole(projectId);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     public async Task RemoveMemberAsync(int projectId, int userId)

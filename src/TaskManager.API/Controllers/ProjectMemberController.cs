@@ -18,6 +18,13 @@ namespace TaskManager.Controllers
             return Ok(members);
         }
 
+        [HttpGet("my-role")]
+        public async Task<IActionResult> GetMyRole(int projectId)
+        {
+            var role = await service.GetMyRoleAsync(projectId);
+            return Ok(role);
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddMember(int projectId, AddProjectMemberRequest request)
         {

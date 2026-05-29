@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TaskManager.Data;
@@ -11,9 +12,11 @@ using TaskManager.Data;
 namespace TaskManager.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260529141048_AddAutoStatusToColumn")]
+    partial class AddAutoStatusToColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -210,33 +213,6 @@ namespace TaskManager.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ProjectMessages");
-                });
-
-            modelBuilder.Entity("TaskManager.Models.ProjectMessageRead", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MessageId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("MessageId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("ProjectMessageReads");
                 });
 
             modelBuilder.Entity("TaskManager.Models.RefreshToken", b =>
@@ -484,33 +460,6 @@ namespace TaskManager.Data.Migrations
                     b.ToTable("WorkItemMessages");
                 });
 
-            modelBuilder.Entity("TaskManager.Models.WorkItemMessageRead", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MessageId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("MessageId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("WorkItemMessageReads");
-                });
-
             modelBuilder.Entity("TaskManager.Models.Board", b =>
                 {
                     b.HasOne("TaskManager.Models.Project", "Project")
@@ -589,25 +538,6 @@ namespace TaskManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TaskManager.Models.ProjectMessageRead", b =>
-                {
-                    b.HasOne("TaskManager.Models.ProjectMessage", "Message")
-                        .WithMany("Reads")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TaskManager.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
 
                     b.Navigation("User");
                 });
@@ -715,25 +645,6 @@ namespace TaskManager.Data.Migrations
                     b.Navigation("WorkItem");
                 });
 
-            modelBuilder.Entity("TaskManager.Models.WorkItemMessageRead", b =>
-                {
-                    b.HasOne("TaskManager.Models.WorkItemMessage", "Message")
-                        .WithMany("Reads")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TaskManager.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("TaskManager.Models.Board", b =>
                 {
                     b.Navigation("Columns");
@@ -755,11 +666,6 @@ namespace TaskManager.Data.Migrations
                     b.Navigation("PinnedByUsers");
 
                     b.Navigation("WorkItems");
-                });
-
-            modelBuilder.Entity("TaskManager.Models.ProjectMessage", b =>
-                {
-                    b.Navigation("Reads");
                 });
 
             modelBuilder.Entity("TaskManager.Models.User", b =>
@@ -790,11 +696,6 @@ namespace TaskManager.Data.Migrations
                     b.Navigation("Assignees");
 
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("TaskManager.Models.WorkItemMessage", b =>
-                {
-                    b.Navigation("Reads");
                 });
 #pragma warning restore 612, 618
         }

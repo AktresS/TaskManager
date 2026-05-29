@@ -87,13 +87,12 @@ else
                     <div style="display:flex; gap:4px;">
                         <MudTooltip Text="@(project.IsPinned ? "Открепить" : "Закрепить")">
                             <MudIconButton
-                                Icon="@(project.IsPinned
-                                    ? Icons.Material.Filled.PushPin
-                                    : Icons.Material.Outlined.PushPin)"
+                                Icon="@(project.IsPinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
                                 Size="Size.Small"
                                 Style="@(project.IsPinned ? "color:#f59e0b;" : "color:#444;")"
                                 OnClick="() => TogglePin(project)" />
                         </MudTooltip>
+
                         <MudTooltip Text="Участники">
                             <MudIconButton Icon="@Icons.Material.Filled.Group"
                                         Size="Size.Small"
@@ -101,18 +100,25 @@ else
                                         OnClick="() => OpenMembersModal(project)" />
                         </MudTooltip>
 
-                        <MudTooltip Text="Редактировать">
-                            <MudIconButton Icon="@Icons.Material.Filled.EditNote"
-                                           Size="Size.Small"
-                                           Style="color:#444;"
-                                           OnClick="() => OpenEditModal(project)" />
-                        </MudTooltip>
-                        <MudTooltip Text="Удалить">
-                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
-                                           Size="Size.Small"
-                                           Style="color:#444;"
-                                           OnClick="() => ConfirmDelete(project)" />
-                        </MudTooltip>
+                        @if (CanEdit(project.ProjectId))
+                        {
+                            <MudTooltip Text="Редактировать">
+                                <MudIconButton Icon="@Icons.Material.Filled.EditNote"
+                                            Size="Size.Small"
+                                            Style="color:#444;"
+                                            OnClick="() => OpenEditModal(project)" />
+                            </MudTooltip>
+                        }
+
+                        @if (CanDelete(project.ProjectId))
+                        {
+                            <MudTooltip Text="Удалить">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                            Size="Size.Small"
+                                            Style="color:#444;"
+                                            OnClick="() => ConfirmDelete(project)" />
+                            </MudTooltip>
+                        }
                     </div>
                 </div>
 
@@ -123,16 +129,42 @@ else
 
 @code {
     private List<ProjectResponse>? projects;
+    private Dictionary<int, MemberRole?> _projectRoles = new();
     private bool isLoading = true;
     private string? error;
 
     protected override async Task OnInitializedAsync() => await LoadProjects();
 
+    private bool CanEdit(int projectId) =>
+        _projectRoles.TryGetValue(projectId, out var role) &&
+        (role == MemberRole.Owner);
+
+    private bool CanDelete(int projectId) =>
+        _projectRoles.TryGetValue(projectId, out var role) &&
+        role == MemberRole.Owner;
+
+    private bool CanManageMembers(int projectId) =>
+        _projectRoles.TryGetValue(projectId, out var role) &&
+        (role == MemberRole.Owner || role == MemberRole.Admin);
+
     private async Task LoadProjects()
     {
         isLoading = true;
         error = null;
-        try { projects = await ProjectService.GetUserProjectsAsync(); }
+        try 
+        { 
+            projects = await ProjectService.GetUserProjectsAsync();
+
+            var roleTasks = projects.Select(async p =>
+            {
+                var role = await MemberService.GetMyRoleAsync(p.ProjectId);
+                return (p.ProjectId, role);
+            });
+
+            var roles = await System.Threading.Tasks.Task.WhenAll(roleTasks);
+            _projectRoles = roles.ToDictionary(x => x.ProjectId, x => x.role);
+        
+        }
         catch (Exception ex) { error = ex.Message; }
         finally { isLoading = false; }
     }
@@ -168,7 +200,8 @@ else
     {
         var parameters = new DialogParameters<ManageMembersModal>
         {
-            { x => x.ProjectId, project.ProjectId }
+            { x => x.ProjectId, project.ProjectId },
+            { x => x.CurrentUserRole, _projectRoles.TryGetValue(project.ProjectId, out var role) ? role : null }
         };
 
         await DialogService.ShowAsync<ManageMembersModal>("", parameters,
