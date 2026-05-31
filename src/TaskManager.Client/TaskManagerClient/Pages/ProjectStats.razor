@@ -174,69 +174,121 @@ else
             }
         </div>
 
-        @if (_memberFilter == "all")
+        @if (WeeklyData.Any())
         {
             <div class="chart-card">
                 <MudText Typo="Typo.subtitle1"
-                         Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
-                    Топ исполнителей
+                        Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                    Завершённые задачи по неделям
                 </MudText>
 
-                @if (!TopAssignees.Any())
-                {
-                    <div class="chart-empty">Нет данных</div>
-                }
-                else
-                {
-                    <div style="display:flex; flex-direction:column; gap:10px;">
-                        @foreach (var (name, avatarUrl, total, done) in TopAssignees)
-                        {
-                            var percent = total > 0 ? (int)(done * 100.0 / total) : 0;
-                            <div class="assignee-row">
+                <MudChart ChartType="ChartType.Bar"
+                        ChartLabels="@WeeklyLabels"
+                        ChartSeries="@WeeklySeries"
+                        Width="100%"
+                        Height="200px"
+                        ChartOptions="_barOptions" />
+            </div>
+        }
+
+    </div>
+
+    @if (_memberFilter == "all")
+    {
+        <div class="chart-card">
+            <MudText Typo="Typo.subtitle1"
+                        Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
+                Топ исполнителей
+            </MudText>
+
+            @if (!TopAssignees.Any())
+            {
+                <div class="chart-empty">Нет данных</div>
+            }
+            else
+            {
+                <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
+                    @foreach (var (name, avatarUrl, total, done, onTime, avgDays, highCount, medCount, lowCount) in TopAssignees)
+                    {
+                        var donePercent   = total > 0 ? (int)(done * 100.0 / total) : 0;
+                        var onTimePercent = done > 0  ? (int)(onTime * 100.0 / done) : 0;
+
+                        <div style="background:#1f1f1f; border:1px solid #2a2a2a; border-radius:12px; padding:14px;">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                                 <div class="assignee-avatar">
                                     @if (!string.IsNullOrEmpty(avatarUrl))
                                     {
                                         <img src="@avatarUrl"
-                                             style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+                                            style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
                                     }
                                     else
                                     {
                                         @(name is { Length: > 0 } ? name[0].ToString().ToUpper() : "?")
                                     }
                                 </div>
-                                <div style="flex:1; min-width:0;">
-                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                        <span style="font-size:16px; color:#ddd; font-weight:500;">@name</span>
-                                        <span style="font-size:13px; color:#555;"> @done/@total</span>
+                                <div style="flex:1;">
+                                    <div style="font-size:14px; font-weight:600; color:#eaeaea;">@name</div>
+                                    <div style="font-size:11px; color:#555; margin-top:2px;">
+                                        @done из @total задач завершено
                                     </div>
-                                    <MudProgressLinear Value="@percent"
-                                                    Color="Color.Primary"
-                                                    Rounded="true"
-                                                    Size="Size.Medium"/>
+                                    <!-- Приоритеты в одну строку -->
+                                    <div style="display:flex; gap:10px; margin-top:6px;">
+                                        <span style="display:flex; align-items:center; gap:3px; font-size:11px; color:#555;">
+                                            <div style="width:7px; height:7px; border-radius:50%; background:#ef4444; flex-shrink:0;"></div>
+                                            @highCount
+                                        </span>
+                                        <span style="display:flex; align-items:center; gap:3px; font-size:11px; color:#555;">
+                                            <div style="width:7px; height:7px; border-radius:50%; background:#f59e0b; flex-shrink:0;"></div>
+                                            @medCount
+                                        </span>
+                                        <span style="display:flex; align-items:center; gap:3px; font-size:11px; color:#555;">
+                                            <div style="width:7px; height:7px; border-radius:50%; background:#22c55e; flex-shrink:0;"></div>
+                                            @lowCount
+                                        </span>
+                                    </div>
                                 </div>
+
+                                @if (done > 0)
+                                {
+                                    <div style="text-align:right; flex-shrink:0;">
+                                        <div style="font-size:18px; font-weight:700; color:#7c6af7;">
+                                            @(avgDays < 1 ? "<1" : ((int)avgDays).ToString())
+                                        </div>
+                                        <div style="font-size:10px; color:#555;">дн/задача</div>
+                                    </div>
+                                }
                             </div>
-                        }
-                    </div>
-                }
-            </div>
-        }
 
-    </div>
+                            <div style="margin-bottom:8px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                    <span style="font-size:11px; color:#666;">Выполнено</span>
+                                    <span style="font-size:11px; color:#888; font-weight:600;">@donePercent%</span>
+                                </div>
+                                <MudProgressLinear Value="@donePercent"
+                                                Color="Color.Primary"
+                                                Rounded="true"
+                                                Size="Size.Small" />
+                            </div>
 
-    @if (WeeklyData.Any())
-    {
-        <div class="chart-card" style="margin-top:16px;">
-            <MudText Typo="Typo.subtitle1"
-                     Style="font-weight:700; color:#eaeaea; margin-bottom:16px;">
-                Завершённые задачи по неделям
-            </MudText>
+                            <!-- Прогресс в срок -->
+                            <div>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                    <span style="font-size:11px; color:#666;">В срок</span>
+                                    <span style="font-size:11px; font-weight:600;
+                                                color:@(onTimePercent >= 80 ? "#22c55e" : onTimePercent >= 50 ? "#f59e0b" : "#ef4444");">
+                                        @onTime/@done (@onTimePercent%)
+                                    </span>
+                                </div>
+                                <MudProgressLinear Value="@onTimePercent"
+                                                Color="@(onTimePercent >= 80 ? Color.Success : onTimePercent >= 50 ? Color.Warning : Color.Error)"
+                                                Rounded="true"
+                                                Size="Size.Small" />
+                            </div>
 
-            <MudChart ChartType="ChartType.Bar"
-                    ChartLabels="@WeeklyLabels"
-                    ChartSeries="@WeeklySeries"
-                    Width="100%"
-                    Height="200px"
-                    ChartOptions="_barOptions" />
+                        </div>
+                    }
+                </div>
+            }
         </div>
     }
 }
@@ -388,19 +440,47 @@ else
         ? $"({Math.Round(count * 100.0 / FilteredTasks.Count)}%)"
         : "(0%)";
 
-    private List<(string Name, string? AvatarUrl, int Total, int Done)> TopAssignees =>
-        FilteredTasks
-            .SelectMany(t => t.Assignees.Select(a => new { a.Id, a.Name, a.AvatarUrl, IsDone = t.State == TaskState.Completed }))
-            .GroupBy(x => new { x.Id, x.Name, x.AvatarUrl })
-            .Select(g => (
-                Name:      g.Key.Name ?? "—",
-                AvatarUrl: g.Key.AvatarUrl,
-                Total:     g.Count(),
-                Done:      g.Count(x => x.IsDone)
-            ))
-            .OrderByDescending(x => x.Done)
-            .Take(5)
-            .ToList();
+    private List<(string Name, string? AvatarUrl, int Total, int Done, int OnTime, double AvgDays, int High, int Med, int Low)> TopAssignees
+    {
+        get
+        {
+            return FilteredTasks
+                .SelectMany(t => t.Assignees.Select(a => new
+                {
+                    a.Id,
+                    a.Name,
+                    a.AvatarUrl,
+                    IsDone    = t.State == TaskState.Completed,
+                    IsOnTime  = t.State == TaskState.Completed &&
+                                t.CompletedAt.HasValue &&
+                                t.CompletedAt.Value <= t.DeadLine,
+                    DaysSpent = t.State == TaskState.Completed &&
+                                t.CompletedAt.HasValue &&
+                                t.StartDate.HasValue
+                                ? (t.CompletedAt.Value - t.StartDate.Value).TotalDays
+                                : (double?)null,
+                    Priority  = t.Priority
+                }))
+                .GroupBy(x => new { x.Id, x.Name, x.AvatarUrl })
+                .Select(g => (
+                    Name:     g.Key.Name ?? "—",
+                    AvatarUrl: g.Key.AvatarUrl,
+                    Total:    g.Count(),
+                    Done:     g.Count(x => x.IsDone),
+                    OnTime:   g.Count(x => x.IsOnTime),
+                    AvgDays:  g.Where(x => x.DaysSpent.HasValue)
+                            .Select(x => x.DaysSpent!.Value)
+                            .DefaultIfEmpty(0)
+                            .Average(),
+                    High:     g.Count(x => x.Priority == TaskPriority.High),
+                    Med:      g.Count(x => x.Priority == TaskPriority.Medium),
+                    Low:      g.Count(x => x.Priority == TaskPriority.Low)
+                ))
+                .OrderByDescending(x => x.Done)
+                .Take(5)
+                .ToList();
+        }
+    }
 
     private List<(string Label, int Count)> WeeklyData
     {
