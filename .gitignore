@@ -42,6 +42,7 @@ artifacts/
 
 # ASP.NET Core
 appsettings.Development.json
+appsettings.Production.json
 *.user
 
 # PostgreSQL

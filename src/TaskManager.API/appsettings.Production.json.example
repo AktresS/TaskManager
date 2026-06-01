@@ -1,0 +1,16 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=db;Database=taskmanager;Username=postgres;Password=postgres"
+  },
+  "JwtOptions": {
+    "SecretKey": "THIS_IS_SUPER_SECRET_KEY_FOR_TASK_MANAGER_PROJECT_123456789",
+    "ExpireHourse": 1,
+    "Issuer": "http://localhost:5165",
+    "Audience": "http://localhost:5165"
+  },
+  "Cloudinary": {
+    "CloudName": "",
+    "ApiKey": "",
+    "ApiSecret": ""
+  }
+}

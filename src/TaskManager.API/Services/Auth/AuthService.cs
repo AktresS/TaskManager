@@ -43,7 +43,7 @@ public class AuthService(IOptions<JwtOptions> config, AppDbContext context) : IA
         if (user is null) return new LoginResponse(false, "Model is empty");
 
         var applicationUser = await context.Users.FirstOrDefaultAsync(x => x.Email!.ToLower()!.Equals(user.Email!.ToLower()));
-        if (applicationUser is null) return new LoginResponse(false, "User registered already");
+        if (applicationUser is null) return new LoginResponse(false, "User not found");
 
         if (!BCrypt.Net.BCrypt.Verify(user.Password, applicationUser.PasswordHash))
             return new LoginResponse(false, "Email/Password not valid");

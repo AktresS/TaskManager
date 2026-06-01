@@ -1,0 +1,16 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["src/TaskManager.Client/TaskManagerClient/TaskManagerClient.csproj", "src/TaskManager.Client/TaskManagerClient/"]
+COPY ["src/BaseLibrary/BaseLibrary.csproj", "src/BaseLibrary/"]
+COPY ["src/ClientLibrary/ClientLibrary.csproj", "src/ClientLibrary/"]
+RUN dotnet restore "src/TaskManager.Client/TaskManagerClient/TaskManagerClient.csproj"
+
+COPY . .
+WORKDIR "/src/src/TaskManager.Client/TaskManagerClient"
+RUN dotnet publish -c Release -o /app/publish
+
+FROM nginx:alpine AS final
+COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80

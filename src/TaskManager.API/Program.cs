@@ -84,7 +84,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         var jwtOptions = builder.Configuration
             .GetSection("JwtOptions")
-            .Get<JwtOptions>();
+            .Get<JwtOptions>() ?? throw new Exception("JwtOptions не настроены");
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -119,12 +119,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowBlazorWasm",
-        builder => builder
-        .WithOrigins("http://localhost:5268","https://localhost:7252")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials());
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5268",
+                "http://localhost:5165",
+                "https://localhost:5268",
+                "https://localhost:5165")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -159,15 +164,17 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
 }
 
+app.UseSwagger();
+app.UseSwaggerUI();
+
 app.UseHttpsRedirection();
-app.UseCors("AllowBlazorWasm");
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
