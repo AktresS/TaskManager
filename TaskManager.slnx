@@ -9,4 +9,7 @@
   <Folder Name="/src/TaskManager.Client/">
     <Project Path="src/TaskManager.Client/TaskManagerClient/TaskManagerClient.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TaskManager.Tests/TaskManager.Tests.csproj" />
+  </Folder>
 </Solution>

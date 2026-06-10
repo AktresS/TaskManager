@@ -4,13 +4,14 @@ using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
+using TaskManager.Services.ChatRealtimeNotifier;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.ProjectMessages;
 
-public class ProjectMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth, INotificationSender sender): IProjectMessageService
+public class ProjectMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth, INotificationSender sender, IChatRealtimeNotifier realtime): IProjectMessageService
 {
     public async Task<ProjectMessageResponse> CreateAsync(int projectId, CreateProjectMessageRequest request)
     {
@@ -44,16 +45,23 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
                 $"/chats?project={projectId}");
         }
 
-        return new ProjectMessageResponse
+        var response = new ProjectMessageResponse
         {
             Id = message.ProjectMessageId,
             UserId = message.UserId,
-            UserName = (await context.Users.FindAsync(message.UserId))!.Name,
+            UserName = sender_user!.Name,
+            ProjectId = projectId,
+            ProjectName = project!.Name,
+            AvatarUrl = sender_user.AvatarUrl,
             Text = message.Text,
             AttachmentUrl = message.AttachmentUrl,
             AttachmentName = request.AttachmentName,
             SentDate = message.SentDate
         };
+
+        await realtime.ProjectMessageAsync(members.Select(m => m.UserId), response);
+
+        return response;
     }
     
     public async Task<ProjectMessageResponse> UpdateAsync(int projectId, int messageId, UpdateProjectMessageRequest request)
@@ -133,3 +141,4 @@ public class ProjectMessageService(AppDbContext context, ICurrentUserService cur
 
     }
 }
+

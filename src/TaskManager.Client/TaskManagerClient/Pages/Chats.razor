@@ -1,5 +1,6 @@
 ﻿@page "/chats"
 @attribute [Authorize]
+@implements IDisposable
 
 <PageTitle>Чаты</PageTitle>
 <div class="chat-layout">
@@ -337,6 +338,10 @@
         var userIdClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
         if (userIdClaim != null) int.TryParse(userIdClaim.Value, out _currentUserId);
 
+        // Подписка на live-сообщения (общий SignalR-хаб уведомлений).
+        NotificationService.OnProjectMessage += OnProjectMessageReceived;
+        NotificationService.OnWorkItemMessage += OnWorkItemMessageReceived;
+
         var projectsTask = ProjectService.GetUserProjectsAsync();
         var tasksTask    = TaskService.GetMyAsync();
         await System.Threading.Tasks.Task.WhenAll(projectsTask, tasksTask);
@@ -520,6 +525,46 @@
         }
 
         _shouldScroll = true;
+    }
+
+    private void OnProjectMessageReceived(ProjectMessageResponse msg)
+    {
+        if (_activeChat is not { IsProject: true } || int.Parse(_activeChat.EntityId) != msg.ProjectId)
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            if (_messages.Any(m => m.Id == msg.Id)) return;
+
+            _messages.Add(FromProjectMessage(msg));
+            _shouldScroll = true;
+            StateHasChanged();
+
+            await ProjectMessageService.MarkReadAsync(msg.ProjectId);
+        });
+    }
+
+    private void OnWorkItemMessageReceived(WorkItemMessageResponse msg)
+    {
+        if (_activeChat is not { IsProject: false } || int.Parse(_activeChat.EntityId) != msg.WorkItemId)
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            if (_messages.Any(m => m.Id == msg.MessageId)) return;
+
+            _messages.Add(FromTaskMessage(msg));
+            _shouldScroll = true;
+            StateHasChanged();
+
+            await TaskMessageService.MarkReadAsync(msg.WorkItemId);
+        });
+    }
+
+    public void Dispose()
+    {
+        NotificationService.OnProjectMessage -= OnProjectMessageReceived;
+        NotificationService.OnWorkItemMessage -= OnWorkItemMessageReceived;
     }
 
     private ChatMessage FromProjectMessage(ProjectMessageResponse msg) => new()

@@ -1,91 +1,264 @@
+.landing {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 40px 80px;
+}
 
-/* Контейнер */
-.landing-container {
+/* ── Навигация ── */
+.landing-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 100vh;
-    padding: 0 180px;
+    padding: 16px 0;
 }
 
-/* Левая часть */
-.landing-content {
-    max-width: 500px;
-}
-
-/* Заголовок */
-.title {
-    font-size: 48px;
-    font-weight: 600;
-    margin-bottom: 20px;
-}
-
-/* Подзаголовок */
-.subtitle {
-    font-size: 18px;
-    color: #b0b0b0;
-    margin-bottom: 30px;
-}
-
-/* Кнопки */
-.buttons {
+.brand {
     display: flex;
-    gap: 15px;
+    align-items: center;
+    gap: 12px;
 }
 
-/* Общий стиль кнопок */
-.btn {
-    padding: 12px 24px;
-    border-radius: 8px;
-    text-decoration: none;
+.brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c6af7, #5b4fcf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
     font-size: 16px;
+    box-shadow: 0 8px 24px rgba(124, 106, 247, 0.4);
+}
+
+.brand-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #eaeaea;
+    letter-spacing: 0.3px;
+}
+
+.nav-login {
+    color: #b8b8c0;
+    text-decoration: none;
+    font-size: 15px;
+    padding: 8px 16px;
+    border-radius: 10px;
     transition: 0.2s;
 }
 
-/* Primary кнопка */
-.btn.primary {
-    background-color: #3a3a3a;
-    color: white;
+.nav-login:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
 }
 
-.btn.primary:hover {
-    background-color: #505050;
-}
-
-/* Secondary кнопка */
-.btn.secondary {
-    border: 1px solid #555;
-    color: #ddd;
-}
-
-.btn.secondary:hover {
-    background-color: #2a2a2a;
-}
-
-.preview {
-    flex: 1;
+/* ── Герой ── */
+.hero {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    gap: 60px;
+    padding: 64px 0 90px;
+}
+
+.hero-text {
+    flex: 1;
+    max-width: 560px;
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border: 1px solid rgba(124, 106, 247, 0.4);
+    border-radius: 999px;
+    background: rgba(124, 106, 247, 0.08);
+    color: #b9aef9;
+    font-size: 13px;
+    margin-bottom: 24px;
+}
+
+.hero-title {
+    font-size: 52px;
+    line-height: 1.1;
+    font-weight: 700;
+    color: #f5f5f7;
+    margin: 0 0 20px;
+}
+
+.hero-title .accent {
+    background: linear-gradient(135deg, #9b8cff, #7c6af7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #a9a9b3;
+    margin: 0 0 32px;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 14px 28px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    transition: 0.2s;
+    display: inline-flex;
     align-items: center;
 }
 
-/* сама картинка */
-.preview img {
-    width: 800px;
-    max-width: 100%;
-    border-radius: 16px;
-
-    /* мягкая тень */
-    box-shadow: 
-        0 30px 80px rgba(0, 0, 0, 0.6),
-        0 0 40px rgba(100, 100, 100, 0.15);
-
-    /* лёгкий эффект */
-    transform: perspective(1200px) rotateY(-5deg) rotateX(2deg);
-    transition: all 0.3s ease;
+.btn-primary {
+    background: linear-gradient(135deg, #7c6af7, #5b4fcf);
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(124, 106, 247, 0.4);
 }
 
-/* hover эффект */
-.preview img:hover {
-    transform: perspective(1200px) rotateY(0deg) rotateX(0deg) scale(1.02);
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 38px rgba(124, 106, 247, 0.55);
+}
+
+.btn-ghost {
+    color: #e0e0e6;
+    border: 1px solid #3a3a42;
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #555;
+}
+
+/* ── Превью ── */
+.hero-preview {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.preview-glow {
+    position: absolute;
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(124, 106, 247, 0.35), transparent 70%);
+    filter: blur(60px);
+    z-index: 0;
+}
+
+.hero-preview img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 680px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.55);
+    transform: perspective(1400px) rotateY(-6deg) rotateX(3deg);
+    transition: 0.4s ease;
+}
+
+.hero-preview img:hover {
+    transform: perspective(1400px) rotateY(0deg) rotateX(0deg) scale(1.02);
+}
+
+/* ── Возможности ── */
+.features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.feature {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 24px;
+    transition: 0.25s;
+}
+
+.feature:hover {
+    border-color: rgba(124, 106, 247, 0.4);
+    background: rgba(124, 106, 247, 0.06);
+    transform: translateY(-4px);
+}
+
+.feature-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(124, 106, 247, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9b8cff;
+    margin-bottom: 16px;
+}
+
+.feature-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.feature h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #eaeaea;
+    margin: 0 0 8px;
+}
+
+.feature p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #8c8c96;
+    margin: 0;
+}
+
+/* ── Адаптив ── */
+@media (max-width: 980px) {
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        gap: 48px;
+        padding: 48px 0 64px;
+    }
+
+    .hero-text {
+        max-width: none;
+    }
+
+    .hero-actions {
+        justify-content: center;
+    }
+
+    .hero-title {
+        font-size: 40px;
+    }
+
+    .features {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+    .landing {
+        padding: 20px;
+    }
+
+    .hero-title {
+        font-size: 32px;
+    }
+
+    .features {
+        grid-template-columns: 1fr;
+    }
 }

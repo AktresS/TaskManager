@@ -1,20 +1,83 @@
 ﻿@page "/"
 @layout LandingLayout
-<div class="landing-container">
-    <div class="landing-content">
-        <h1 class="title">Task Messenger</h1>
 
-        <p class="subtitle">
-            Manage your tasks and communicate with your team in one place
-        </p>
+<div class="landing">
 
-        <div class="buttons">
-            <a href="/identity/account/login" class="btn primary">Login</a>
-            <a href="/identity/account/register" class="btn secondary">Register</a>
+    <header class="landing-nav">
+        <div class="brand">
+            <div class="brand-mark">TM</div>
+            <span class="brand-name">Task Messenger</span>
         </div>
-    </div>
+        <a href="/identity/account/login" class="nav-login">Войти</a>
+    </header>
 
-    <div class="preview">
-        <img src="images/background/preview.png" alt="App preview" />
-    </div>
+    <section class="hero">
+        <div class="hero-text">
+            <div class="hero-badge">Управление задачами и командная работа</div>
+            <h1 class="hero-title">Все задачи команды <span class="accent">в одном месте</span></h1>
+            <p class="hero-subtitle">
+                Планируйте работу на канбан-доске и диаграмме Ганта, общайтесь в реальном
+                времени и держите проекты под контролем — без десятка разрозненных сервисов.
+            </p>
+            <div class="hero-actions">
+                <a href="/identity/account/register" class="btn btn-primary">Регистрация</a>
+                <a href="/identity/account/login" class="btn btn-ghost">Войти</a>
+            </div>
+        </div>
+
+        <div class="hero-preview">
+            <div class="preview-glow"></div>
+            <img src="images/background/preview1.png" alt="Интерфейс приложения" />
+        </div>
+    </section>
+
+    <section class="features">
+
+        <div class="feature">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="5" height="18" rx="1.5" />
+                    <rect x="10" y="3" width="5" height="11" rx="1.5" />
+                    <rect x="17" y="3" width="4" height="15" rx="1.5" />
+                </svg>
+            </div>
+            <h3>Канбан-доска</h3>
+            <p>Управляйте задачами по этапам, перетаскивая карточки между колонками.</p>
+        </div>
+
+        <div class="feature">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" y1="6" x2="13" y2="6" />
+                    <line x1="9" y1="12" x2="20" y2="12" />
+                    <line x1="6" y1="18" x2="14" y2="18" />
+                </svg>
+            </div>
+            <h3>Диаграмма Ганта</h3>
+            <p>Видите сроки и ход выполнения задач на единой временной шкале.</p>
+        </div>
+
+        <div class="feature">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />
+                </svg>
+            </div>
+            <h3>Чаты в реальном времени</h3>
+            <p>Обсуждайте проекты и задачи, сообщения приходят мгновенно.</p>
+        </div>
+
+        <div class="feature">
+            <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+                </svg>
+            </div>
+            <h3>Уведомления</h3>
+            <p>Напоминания о дедлайнах и важных событиях, чтобы ничего не упустить.</p>
+        </div>
+
+    </section>
+
 </div>

@@ -4,17 +4,17 @@
 <MudPaper Class="auth-card" Elevation="0">
 
     <MudText Typo="Typo.h5" Class="mb-1" Style="font-weight:700; color:#eaeaea;">
-        Welcome back
+        С возвращением
     </MudText>
     <MudText Typo="Typo.body2" Style="color:#888; margin-bottom:32px;">
-        Sign in to continue
+        Войдите, чтобы продолжить
     </MudText>
 
     <EditForm Model="User" OnValidSubmit="HandleLogin">
         <DataAnnotationsValidator />
 
         <MudTextField @bind-Value="User.Email"
-                      Label="Email"
+                      Label="Электронная почта"
                       InputType="InputType.Email"
                       Variant="Variant.Outlined"
                       Class="mb-4"
@@ -24,7 +24,7 @@
                       Style="color:#eaeaea;" />
 
         <MudTextField @bind-Value="User.Password"
-                      Label="Password"
+                      Label="Пароль"
                       InputType="@_passwordInput"
                       Variant="Variant.Outlined"
                       Class="mb-2"
@@ -50,11 +50,11 @@
             @if (_loading)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                <span>Signing in...</span>
+                <span>Вход...</span>
             }
             else
             {
-                <span>Sign in</span>
+                <span>Войти</span>
             }
         </MudButton>
 
@@ -63,9 +63,9 @@
     <MudDivider Class="my-5" Style="border-color:#2e2e2e;" />
 
     <MudText Typo="Typo.body2" Align="Align.Center" Style="color:#888;">
-        Don't have an account?
+        Нет аккаунта?
         <MudLink Href="/identity/account/register" Style="color:#7c6af7; font-weight:600;">
-            Register
+            Зарегистрироваться
         </MudLink>
     </MudText>
 
@@ -90,7 +90,6 @@
         font-size: 15px;
     }
 
-    /* Граница поля */
     .mud-input-outlined .mud-input-outlined-border {
         border-color: #333 !important;
     }
@@ -98,17 +97,13 @@
         border-color: #7c6af7 !important;
     }
 
-    /* Цвет текста и label */
     .mud-input-label { color: #666 !important; }
     .mud-input-root { color: #eaeaea !important; }
 
-    /* Отступ внутри поля — чтобы текст не прилипал к иконке */
     .mud-input-adornment-start + .mud-input {
         padding-left: 6px !important;
     }
 
-    /* ===== АВТОФИЛЛ ФИКС ===== */
-    /* Убираем синий фон браузера, подставляем свой тёмный */
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
@@ -116,10 +111,9 @@
         -webkit-box-shadow: 0 0 0 100px #2a2a2a inset !important;
         -webkit-text-fill-color: #eaeaea !important;
         caret-color: #eaeaea;
-        transition: background-color 9999s ease-in-out 0s; /* трюк — откладываем смену фона на вечность */
+        transition: background-color 9999s ease-in-out 0s; 
     }
 
-    /* Иконки — делаем их чуть ярче когда поле в автофилле */
     .mud-input-outlined:has(input:-webkit-autofill) .mud-input-adornment {
         color: #7c6af7 !important;
     }

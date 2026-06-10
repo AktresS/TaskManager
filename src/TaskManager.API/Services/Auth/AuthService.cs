@@ -114,7 +114,8 @@ public class AuthService(IOptions<JwtOptions> config, AppDbContext context) : IA
         var updateRefreshToken = await context.RefreshTokens.FirstOrDefaultAsync(x => x.UserId == user.UserId);
         if (updateRefreshToken is null) return new LoginResponse(false, "Refresh token could not be generated because user has not signed in");
 
-        Console.WriteLine($"[DEBUG] findToken.Expires: {updateRefreshToken.Expires} (Kind: {updateRefreshToken.Expires.Kind})");
+        updateRefreshToken.Token = refreshToken;
+        updateRefreshToken.Expires = DateTime.UtcNow.AddDays(7);
         await context.SaveChangesAsync();
         return new LoginResponse(true, "Token refreshed successfully", jwtToken, refreshToken);
     }

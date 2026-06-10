@@ -1,17 +1,17 @@
-
 using BaseLibrary.DTOs.WorkItemMessageDtos;
 using BaseLibrary.Enums;
 using BaseLibrary.Responses;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
+using TaskManager.Services.ChatRealtimeNotifier;
 using TaskManager.Services.CurrentUser;
 using TaskManager.Services.Notifications;
 using TaskManager.Services.ProjectAuthorization;
 
 namespace TaskManager.Services.WorkItemMessages;
 
-public class WorkItemMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth, INotificationSender sender) : IWorkItemMessageService
+public class WorkItemMessageService(AppDbContext context, ICurrentUserService currentUser, IProjectAuthorizationService auth, INotificationSender sender, IChatRealtimeNotifier realtime) : IWorkItemMessageService
 {
     private async Task<WorkItem> GetAndCheckAccess(int workItemId)
     {
@@ -59,7 +59,8 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
             .Select(x => x.UserId)
             .Append(workItem.CreatedById!.Value)
             .Distinct()
-            .Where(id => id != currentUser.UserId);
+            .Where(id => id != currentUser.UserId)
+            .ToList();
 
         var sender_user = await context.Users.FindAsync(currentUser.UserId);
         foreach (var userId in usersToNotify)
@@ -79,7 +80,11 @@ public class WorkItemMessageService(AppDbContext context, ICurrentUserService cu
         if (createdMessage == null)
             throw new Exception($"Message {message.WorkItemMessageId} not found");
 
-        return MapToResponse(createdMessage);
+        var response = MapToResponse(createdMessage);
+
+        await realtime.WorkItemMessageAsync(usersToNotify, response);
+
+        return response;
     }
 
     private WorkItemMessageResponse MapToResponse(WorkItemMessage message)

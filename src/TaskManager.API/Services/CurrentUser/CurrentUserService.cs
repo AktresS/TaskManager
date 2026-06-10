@@ -1,4 +1,3 @@
-using System;
 using System.Security.Claims;
 
 namespace TaskManager.Services.CurrentUser;
@@ -16,14 +15,11 @@ public class CurrentUserService : ICurrentUserService
     {
         get
         {
-            var userIdClaim = _httpContextAccessor.HttpContext?
-                .User?
-                .FindFirst(ClaimTypes.NameIdentifier)?
-                .Value;
+            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             {
-                throw new UnauthorizedAccessException("Невозможно определить пользователя из токена");
+                throw new UnauthorizedAccessException("Unable to determine user from token");
             }
 
             return userId;
@@ -38,7 +34,7 @@ public class CurrentUserService : ICurrentUserService
 
             if (string.IsNullOrEmpty(userNameClaim))
             {
-                throw new UnauthorizedAccessException("Невозможно определить имя пользователя из токена");
+                throw new UnauthorizedAccessException("Unable to determine username from token");
             }
 
             return userNameClaim;

@@ -26,6 +26,7 @@
     <Folder Include="Hubs\" />
     <Folder Include="Security\" />
     <Folder Include="Services\Boards\" />
+    <Folder Include="Services\ChatRealtimeNotifier\" />
     <Folder Include="Services\Columns\" />
     <Folder Include="Services\Files\" />
     <Folder Include="Services\MessageReads\" />

@@ -23,9 +23,11 @@ public class NotificationService : IAsyncDisposable
 
     public event Action? OnChanged;
 
+    public event Action<ProjectMessageResponse>? OnProjectMessage;
+    public event Action<WorkItemMessageResponse>? OnWorkItemMessage;
+
     public async Task InitAsync(string token)
     {
-        // Загружаем существующие уведомления
         var client = await _getHttpClient.GetPrivateHttpClient();
         var result = await client.GetFromJsonAsync<List<NotificationResponse>>("api/notifications");
         Notifications = result ?? new();
@@ -42,6 +44,16 @@ public class NotificationService : IAsyncDisposable
         {
             Notifications.Insert(0, notification);
             OnChanged?.Invoke();
+        });
+
+        _hub.On<ProjectMessageResponse>("ReceiveProjectMessage", message =>
+        {
+            OnProjectMessage?.Invoke(message);
+        });
+
+        _hub.On<WorkItemMessageResponse>("ReceiveWorkItemMessage", message =>
+        {
+            OnWorkItemMessage?.Invoke(message);
         });
 
         await _hub.StartAsync();
